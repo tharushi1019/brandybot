@@ -12,36 +12,46 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/dashboard"); // Redirect after login
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-tr from-purple-500 via-purple-500 to-blue-500 rounded-lg">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-bold text-center mb-4">Welcome Back</h2>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <form onSubmit={handleLogin}>
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500">
+      <div className="bg-white p-8 rounded-xl shadow-lg w-96">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-4">
+          Welcome Back
+        </h2>
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        <form onSubmit={handleLogin} className="space-y-3">
           <input
             type="email"
             placeholder="Email Address"
-            className="w-full p-2 border rounded mb-2"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
             type="password"
             placeholder="Password"
-            className="w-full p-2 border rounded mb-2"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">Sign In</button>
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white p-3 rounded-lg font-semibold hover:opacity-90 transition"
+          >
+            Sign In
+          </button>
         </form>
-        <p className="text-sm text-center mt-2">
-          Don't have an account? <a href="/signup" className="text-blue-500">Sign Up</a>
+        <p className="text-sm text-center mt-4 text-gray-600">
+          Don't have an account?{" "}
+          <a href="/signup" className="text-blue-600 font-semibold hover:underline">
+            Sign Up
+          </a>
         </p>
       </div>
     </div>
