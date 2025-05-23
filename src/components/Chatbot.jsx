@@ -50,7 +50,7 @@ export default function Chatbot() {
           <img src={chatbotIcon} alt="BrandyBot" className="h-5 w-5 mr-3" /> 
             <span className="font-semibold">BrandyBot</span>
           </div>
-            <button onClick={() => setIsOpen(false)} className="text-xl">✖</button>
+            <button onClick={() => setIsOpen(false)} className="text-xl rounded-lg hover:bg-white transition">✖</button>
           </div>
 
           {/* Chat Messages */}

@@ -9,7 +9,10 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <aside className={`bg-gradient-to-br from-purple-600 to-blue-500 text-white w-64 p-5 ${isSidebarOpen ? "block" : "hidden"} md:block`}>
-        <h2 className="text-3xl font-bold text-center mb-6">BrandyBot</h2>
+        <h2 className="text-3xl font-bold text-center mb-6 flex items-center justify-center">
+          <img src="/brandybot_icon.png" alt="BrandyBot Icon" className="inline-block w-8 h-8 mr-2" />
+          <Link to="/">BrandyBot</Link>
+        </h2>
         <nav>
           <ul className="space-y-4">
             <li>

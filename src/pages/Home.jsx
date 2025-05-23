@@ -8,7 +8,7 @@ export default function Home() {
       <nav className="flex justify-between items-center p-6 md:px-16 bg-gradient-to-r from-purple-600 to-blue-500 text-white">
         <div className="flex items-center">
           <img src="/brandybot_icon.png" alt="BrandyBot Logo" className="h-10 w-10 mr-3" />
-          <h1 className="text-3xl font-bold">BrandyBot</h1>
+          <h1 className="text-3xl font-bold"><Link to="/">BrandyBot</Link></h1>
         </div>
         <div>
           <Link to="/login" className="mr-4 px-5 py-2 border border-white rounded-lg hover:bg-white hover:text-purple-600 transition">Login</Link>
