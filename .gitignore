@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (API KEYS)
+server/.env
+Backend/Kaggle Token/kaggle.json
