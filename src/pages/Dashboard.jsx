@@ -115,9 +115,11 @@ const Dashboard = () => {
               <p className="text-sm text-gray-200">
                 Create stunning logos instantly.
               </p>
-              <button className="mt-3 bg-white text-pink-500 px-4 py-2 rounded-lg font-semibold hover:opacity-90">
-                Generate
-              </button>
+                <Link to="/logo_generator">
+                  <button className="mt-3 bg-white text-pink-500 px-4 py-2 rounded-lg font-semibold transform transition-all duration-300 hover:bg-pink-500 hover:text-white hover:scale-105 hover:shadow-xl">
+                    Generate
+                  </button>
+                </Link>
             </div>
 
             <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
@@ -125,9 +127,11 @@ const Dashboard = () => {
               <p className="text-sm text-gray-200">
                 Define your brand identity easily.
               </p>
-              <button className="mt-3 bg-white text-blue-500 px-4 py-2 rounded-lg font-semibold hover:opacity-90">
-                Generate
-              </button>
+                <Link to="/brand_guidelines">
+                  <button className="mt-3 bg-white text-blue-500 px-4 py-2 rounded-lg font-semibold transform transition-all duration-300 hover:bg-blue-500 hover:text-white hover:scale-105 hover:shadow-xl">
+                    Generate
+                  </button>
+                </Link>
             </div>
 
             <div className="bg-gradient-to-br from-yellow-500 to-pink-500 text-white p-6 rounded-lg shadow-lg">
@@ -135,9 +139,11 @@ const Dashboard = () => {
               <p className="text-sm text-gray-200">
                 Visualize your brand in real-world settings.
               </p>
-              <button className="mt-3 bg-white text-yellow-500 px-4 py-2 rounded-lg font-semibold hover:opacity-90">
-                Generate
-              </button>
+                <Link to="/mockup_generator">
+                  <button className="mt-3 bg-white text-yellow-500 px-4 py-2 rounded-lg font-semibold transform transition-all duration-300 hover:bg-yellow-500 hover:text-white hover:scale-105 hover:shadow-xl">
+                    Generate
+                  </button>
+                </Link>
             </div>
           </div>
         </section>

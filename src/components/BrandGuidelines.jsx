@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function BrandGuidelines() {
   const [sections] = useState([
@@ -40,11 +41,13 @@ export default function BrandGuidelines() {
       <header className="p-6 flex items-center justify-between bg-gradient-to-r from-purple-600 to-blue-500 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-full flex items-center justify-center">
-            <img
-              src="/brandybot_icon.png"
-              className="h-10 w-10 rounded-full shadow-md"
-              alt="BrandyBot Logo"
-            />
+            <Link to="/">
+              <img
+                src="/brandybot_icon.png"
+                className="h-10 w-10 rounded-full shadow-md"
+                alt="BrandyBot Logo"
+              />
+            </Link>
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Brand Guidelines</h1>

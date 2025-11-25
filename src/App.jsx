@@ -18,9 +18,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path='/logo_generator' element={<LogoGenerator/>} />
-        <Route path='/brand_guidelines' element={<BrandGuidelines/>} />
-        <Route path='/mockup_generator' element={<MockUpGenerator/>} />
+        <Route path="/logo_generator" element={<LogoGenerator/>} />
+        <Route path="/brand_guidelines" element={<BrandGuidelines/>} />
+        <Route path="/mockup_generator" element={<MockUpGenerator/>} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
