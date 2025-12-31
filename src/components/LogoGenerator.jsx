@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 export default function LogoGenerator() {
   const [messages, setMessages] = useState([
@@ -8,6 +9,9 @@ export default function LogoGenerator() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [brandInfo, setBrandInfo] = useState({ name: "", style: "", industry: "" });
+  const [logos, setLogos] = useState([]); // store mock logos
+  const [selectedLogo, setSelectedLogo] = useState(null); // NEW
   const chatEndRef = useRef(null);
 
   const handleSend = () => {
@@ -16,22 +20,43 @@ export default function LogoGenerator() {
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
-    const botMessage = {
-      sender: "bot",
-      text: "Great! Let me analyze that and ask a few more questions…",
-    };
-
-    setTimeout(() => {
-      setMessages((prev) => [...prev, botMessage]);
-    }, 700);
+    // Step 1: Collect brand info
+    if (!brandInfo.name) {
+      setBrandInfo((prev) => ({ ...prev, name: input }));
+      botReply("Great! Now tell me your preferred style (e.g., modern, playful, classic).");
+    } else if (!brandInfo.style) {
+      setBrandInfo((prev) => ({ ...prev, style: input }));
+      botReply("Nice! Finally, what industry is your brand in?");
+    } else if (!brandInfo.industry) {
+      setBrandInfo((prev) => ({ ...prev, industry: input }));
+      botReply("Perfect! Generating some logo options for you…");
+      setTimeout(() => showMockLogos(), 1000);
+    }
 
     setInput("");
+  };
+
+  const botReply = (text) => {
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { sender: "bot", text }]);
+    }, 500);
+  };
+
+  // Step 2: Show mock logos
+  const showMockLogos = () => {
+    const mockLogos = [
+      "/src/assets/logos/logo1.png",
+      "/src/assets/logos/logo2.png",
+      "/src/assets/logos/logo3.png",
+    ];
+    setLogos(mockLogos);
+    botReply("Here are some logo options based on your inputs. You can select your favorite!");
   };
 
   // Auto scroll to the latest message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, logos, selectedLogo]);
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
@@ -39,11 +64,13 @@ export default function LogoGenerator() {
       <header className="p-6 flex items-center justify-between bg-gradient-to-r from-purple-600 to-blue-500 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-full flex items-center justify-center">
-            <img
-              src="/brandybot_icon.png"
-              className="h-10 w-10 rounded-full shadow-md"
-              alt="BrandyBot Logo"
-            />
+            <Link to="/">
+              <img
+                src="/brandybot_icon.png"
+                className="h-10 w-10 rounded-full shadow-md"
+                alt="BrandyBot Logo"
+              />
+            </Link>
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Logo Generator</h1>
@@ -57,9 +84,7 @@ export default function LogoGenerator() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
+            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
               className={`max-w-[70%] p-4 rounded-3xl text-sm shadow-md border border-gray-100 ${
@@ -82,6 +107,59 @@ export default function LogoGenerator() {
             </div>
           </div>
         ))}
+
+        {/* Step 2: Display mock logos */}
+        {logos.length > 0 && (
+          <div className="flex gap-5 mt-4 flex-wrap">
+            {logos.map((logo, i) => (
+              <div
+                key={i}
+                onClick={() => setSelectedLogo(logo)}
+                className={`border p-2 rounded-xl bg-white shadow-md cursor-pointer transition transform hover:scale-105 ${
+                  selectedLogo === logo ? "ring-4 ring-purple-500" : ""
+                }`}
+              >
+                <img src={logo} alt={`Logo ${i + 1}`} className="h-40 w-40 object-contain" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Selected logo actions */}
+        {selectedLogo && (
+          <div className="mt-6 p-4 bg-white rounded-2xl shadow-lg border border-gray-200 space-y-4">
+            <p className="font-semibold text-gray-700">
+              Selected Logo Ready! What would you like to do next?
+            </p>
+
+            {/* Download Button */}
+            <a
+              href={selectedLogo}
+              download="brandybot-logo.png"
+              className="px-6 py-3 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-700 transition inline-block"
+            >
+              Download Logo
+            </a>
+
+            {/* Navigation Buttons */}
+            <div className="flex gap-4 mt-3">
+              <Link
+                to="/mockup_generator"
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
+              >
+                Go to Mockup Generator
+              </Link>
+
+              <Link
+                to="/brand_guidelines"
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
+              >
+                Generate Brand Guidelines
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div ref={chatEndRef} />
       </div>
 

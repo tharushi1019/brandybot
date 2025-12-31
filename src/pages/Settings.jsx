@@ -2,7 +2,7 @@ export default function Settings() {
   return (
     <div className="p-6">
       {/* Page Title */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-6 rounded-lg shadow-lg mb-8">
+      <div className="bg-gradient-to-r from-purple-600 to-blue-500 p-6 rounded-lg shadow-lg mb-8">
         <h1 className="text-3xl font-bold text-white">Settings</h1>
         <p className="text-purple-100 mt-1 text-sm">Customize your BrandyBot experience</p>
       </div>
