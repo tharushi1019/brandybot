@@ -21,10 +21,10 @@ const Login = () => {
   return (
     <div className="relative flex justify-center items-center min-h-screen bg-white overflow-hidden">
 
-      {/* ⭐ Glassmorphism Card */}
+      {/* Glassmorphism Card */}
       <div className="relative bg-white/70 backdrop-blur-lg border border-white/30 p-8 rounded-2xl shadow-2xl w-96">
         
-        {/* ⭐ Logo watermark */}
+        {/* Logo watermark */}
       <img
         src="/brandybot_icon.png"
         alt="logo"
