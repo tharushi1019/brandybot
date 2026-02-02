@@ -23,6 +23,10 @@ if (config.mongodb.uri && config.mongodb.uri !== 'mongodb://localhost:27017/bran
 
 const app = express();
 
+// Initialize Firebase Admin SDK
+const setupFirebase = require('./config/firebase');
+setupFirebase();
+
 // Security Middleware
 const morgan = require('morgan');
 const { corsOptions, helmetConfig } = require('./middleware/security');
@@ -34,6 +38,9 @@ app.use(morgan('dev')); // Request logging
 app.use(express.json({ limit: '10mb' })); // Body parser with size limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', apiLimiter); // Rate limiting for API routes
+
+// Routes
+app.use('/api/auth', require('./routes/auth'));
 
 // Basic route
 app.get('/', (req, res) => {

@@ -2,3 +2,6 @@ node_modules
 backend/node_modules
 backend/.env
 brandy_bot_full_project_documentation.md
+frontend/node_modules
+frontend/.env
+frontend/dist
