@@ -1,22 +1,7 @@
 const { catchAsync } = require('../utils/errorHandler');
 const { AppError } = require('../utils/AppError');
 
-// Mock AI Chat response
-const mockChatResponse = async (message) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const responses = [
-                "That's a great idea for your brand! Have you considered using blue tones?",
-                "I can help you design a logo that matches that description.",
-                "Would you like to try a minimalist style for this?",
-                "Tell me more about your target audience.",
-                "I've noted that preference. Let's refine your brand guidelines."
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            resolve(randomResponse);
-        }, 1000);
-    });
-};
+const { chatAI } = require('../services/aiService');
 
 /**
  * @desc    Send a message to the AI chatbot
@@ -31,14 +16,16 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
     }
 
     try {
-        // Call AI Service (Mocked)
-        // In Phase 5, we will pass the conversation history and context here
-        const aiResponse = await mockChatResponse(message);
+        // Call AI Service
+        const aiResult = await chatAI({
+            message: message,
+            context: context
+        });
 
         res.status(200).json({
             success: true,
             data: {
-                message: aiResponse,
+                message: aiResult.response,
                 sender: 'ai',
                 timestamp: new Date()
             }

@@ -4,26 +4,7 @@ const { catchAsync } = require('../utils/errorHandler');
 const { AppError } = require('../utils/AppError');
 const { getConfig } = require('../config/env');
 
-// Mock function to simulate AI generation (will be replaced by actual AI service call in Phase 5)
-const mockGenerateLogo = async (prompt, style) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                logoUrl: `https://via.placeholder.com/500x500.png?text=${encodeURIComponent('Logo: ' + style)}`,
-                colors: {
-                    primary: '#FF5733',
-                    secondary: '#33FF57',
-                    accent: '#3357FF',
-                    additional: ['#F1C40F']
-                },
-                fonts: {
-                    primary: 'Roboto',
-                    secondary: 'Open Sans'
-                }
-            });
-        }, 2000); // Simulate 2s delay
-    });
-};
+const { generateLogoAI } = require('../services/aiService');
 
 /**
  * @desc    Generate a new logo
@@ -49,23 +30,32 @@ exports.generateLogo = catchAsync(async (req, res, next) => {
         logoUrl: 'processing...' // Placeholder
     });
 
-    // 3. Call AI Service (Mocked for Phase 4)
+    // 3. Call AI Service
     try {
-        // In Phase 5, this will be an axios call to the Python AI Service
-        const aiResult = await mockGenerateLogo(prompt, style);
+        const aiResult = await generateLogoAI({
+            brand_name: brandName,
+            prompt,
+            style,
+            industry,
+            colors: colors ? [colors] : []
+        });
 
         // 4. Update history record with results
-        logoEntry.logoUrl = aiResult.logoUrl;
-        logoEntry.colors = { ...logoEntry.colors, ...aiResult.colors }; // Merge with defaults/AI results
-        if (colors) logoEntry.colors.primary = colors; // Override if user provided specific color
-        logoEntry.fonts = aiResult.fonts;
-        logoEntry.status = 'completed';
-        logoEntry.metadata = {
-            width: 1024,
-            height: 1024,
-            format: 'png',
-            fileSize: 1024 * 50 // Mock size
+        // Map Python response to DB format
+        logoEntry.logoUrl = aiResult.url;
+        // Note: Real AI service currently returns simplified data, so we might need to adjust or mock the extra metadata 
+        // until the Python service is fully fleshed out with palette generation.
+        // For now, let's keep some defaults if missing from AI response
+        logoEntry.colors = {
+            primary: colors || '#000000',
+            secondary: '#FFFFFF',
+            accent: '#CCCCCC',
+            additional: []
         };
+        logoEntry.fonts = { primary: 'Arial', secondary: 'Helvetica' };
+
+        logoEntry.status = 'completed';
+        logoEntry.metadata = aiResult.metadata || {};
 
         await logoEntry.save();
 

@@ -1,17 +1,4 @@
-const { catchAsync } = require('../utils/errorHandler');
-const { AppError } = require('../utils/AppError');
-
-// Mock function to simulate AI Mockup generation
-const mockGenerateMockup = async (type, logoUrl) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                mockupUrl: `https://via.placeholder.com/800x600.png?text=Mockup+${type}+${encodeURIComponent(logoUrl.substring(0, 5))}`,
-                type: type
-            });
-        }, 1500); // Simulate 1.5s delay
-    });
-};
+const { generateMockupAI } = require('../services/aiService');
 
 /**
  * @desc    Generate a mockup
@@ -32,12 +19,18 @@ exports.generateMockup = catchAsync(async (req, res, next) => {
     }
 
     try {
-        // Call AI Service (Mocked)
-        const result = await mockGenerateMockup(type, logoUrl);
+        // Call AI Service
+        const result = await generateMockupAI({
+            logo_url: logoUrl,
+            template_type: type
+        });
 
         res.status(200).json({
             success: true,
-            data: result
+            data: {
+                mockupUrl: result.url,
+                type: type
+            }
         });
     } catch (error) {
         return next(new AppError('Mockup generation failed', 500));
