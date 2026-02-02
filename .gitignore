@@ -25,3 +25,5 @@ dist-ssr
 
 # Environment variables (API KEYS)
 server/.env
+
+brandy_bot_full_project_documentation.md
