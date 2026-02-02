@@ -41,6 +41,11 @@ app.use('/api', apiLimiter); // Rate limiting for API routes
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/logos', require('./routes/logoRoutes'));
+app.use('/api/brands', require('./routes/brandRoutes'));
+app.use('/api/mockups', require('./routes/mockupRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {
