@@ -14,7 +14,7 @@ try {
 
 const config = getConfig();
 
-// Connect to MongoDB (only if URI is configured)
+// Connect to MongoDB
 if (config.mongodb.uri && config.mongodb.uri !== 'mongodb://localhost:27017/brandybot') {
     connectDB();
 } else {
@@ -28,14 +28,14 @@ const morgan = require('morgan');
 const { corsOptions, helmetConfig } = require('./middleware/security');
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-app.use(helmetConfig); // Security headers
-app.use(cors(corsOptions)); // CORS configuration
-app.use(morgan('dev')); // Request logging
-app.use(express.json({ limit: '10mb' })); // Body parser with size limit
+app.use(helmetConfig);
+app.use(cors(corsOptions));
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use('/api', apiLimiter); // Rate limiting for API routes
+app.use('/api', apiLimiter);
 
-// Basic route
+// Basic routes
 app.get('/', (req, res) => {
     res.json({
         message: 'BrandyBot API Server',
@@ -44,15 +44,14 @@ app.get('/', (req, res) => {
     });
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString()
-    })
+    });
 });
 
-// Error Handling Middleware (must be last)
+// Error Handling Middleware
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 app.use(notFound);
 app.use(errorHandler);
