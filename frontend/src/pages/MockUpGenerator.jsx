@@ -157,7 +157,14 @@ export default function MockUpGenerator({ mockupData }) {
       {/* Mockup Cards */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto p-6 space-y-8 pb-12">
-          {mockups.length > 0 ? (
+          {isGenerating && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Generating AI mockups for your logo...</p>
+            </div>
+          )}
+
+          {!isGenerating && mockups.length > 0 ? (
             mockups.map((mockup, index) => (
               <div
                 key={index}
@@ -221,7 +228,7 @@ export default function MockUpGenerator({ mockupData }) {
             >
               Download All Mockups
             </button>
-            <button 
+            <button
               onClick={handleShareMockups}
               className="px-6 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium hover:shadow-md hover:text-blue-600"
             >

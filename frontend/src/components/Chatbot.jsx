@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import chatbotIcon from "../assets/chatbot.png";
+import { sendMessage as sendChatApi } from "../services/chatbotService";
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,40 +19,33 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const sendMessage = (text) => {
+  const sendMessage = async (text) => {
     if (!text.trim()) return;
 
     const userMessage = { sender: "user", text };
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
     setIsBotTyping(true);
-    setTimeout(() => {
-      let botReply = "I'm still learning! 🤖 Ask me anything!";
-      let actionInstruction = "";
 
-      const lower = text.toLowerCase();
+    try {
+      const result = await sendChatApi(text, "general");
 
-      if (lower.includes("logo") || lower === "generate logo") {
-        botReply = "Sure! I can generate a logo for you! 🎨";
-        actionInstruction = "Click the 'Logo Generator' menu to start designing your logo!";
-      } else if (lower.includes("guideline") || lower === "show brand guidelines") {
-        botReply = "I can create brand guidelines in seconds! 📄";
-        actionInstruction = "Go to the 'Brand Guidelines' section to preview and download them!";
-      } else if (lower.includes("mockup") || lower === "create mockup") {
-        botReply = "Mockups coming right up! 🖼️";
-        actionInstruction = "Open the 'Mockup Generator' to visualize your brand!";
-      } else if (lower.includes("hello") || lower === "say hello") {
-        botReply = "Hi there! How can I help you today? 😊";
-      }
+      const botReply = result.data?.message || "I didn't get that.";
 
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: botReply },
-        ...(actionInstruction ? [{ sender: "bot", text: actionInstruction }] : []),
+        { sender: "bot", text: botReply }
       ]);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Sorry, I'm having trouble connecting to my brain right now. 🤯" }
+      ]);
+    } finally {
       setIsBotTyping(false);
-    }, 1200);
+    }
   };
 
   const quickActions = ["Generate Logo", "Show Brand Guidelines", "Create Mockup", "Say Hello"];
@@ -68,9 +62,8 @@ export default function Chatbot() {
 
       {/* Chatbot Window */}
       <div
-        className={`fixed bottom-20 right-6 w-80 bg-white/90 backdrop-blur-md shadow-2xl rounded-lg border border-gray-200 transition-all duration-300 ease-in-out ${
-          isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
-        }`}
+        className={`fixed bottom-20 right-6 w-80 bg-white/90 backdrop-blur-md shadow-2xl rounded-lg border border-gray-200 transition-all duration-300 ease-in-out ${isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+          }`}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 rounded-t-lg flex justify-between items-center">
@@ -95,11 +88,10 @@ export default function Chatbot() {
               className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               <span
-                className={`px-4 py-2 rounded-lg shadow-md max-w-[70%] break-words ${
-                  msg.sender === "user"
+                className={`px-4 py-2 rounded-lg shadow-md max-w-[70%] break-words ${msg.sender === "user"
                     ? "bg-blue-500 text-white hover:bg-blue-600 transition"
                     : "bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
-                }`}
+                  }`}
               >
                 {msg.text}
               </span>
