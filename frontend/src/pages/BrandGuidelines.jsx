@@ -133,10 +133,32 @@ export default function BrandGuidelines() {
 
   const handleDownloadPDF = async () => {
     const doc = new jsPDF("p", "pt", "a4");
-    doc.setFontSize(20);
-    doc.text(`${brandName} Brand Guidelines`, 40, 40);
 
-    let y = 80;
+    // Add Main Logo
+    if (logoUrl) {
+      try {
+        const logoImg = new Image();
+        logoImg.src = logoUrl;
+        await new Promise((resolve, reject) => {
+          logoImg.onload = () => resolve(true);
+          logoImg.onerror = reject;
+        });
+        const logoWidth = 80;
+        const logoHeight = (logoImg.height / logoImg.width) * logoWidth;
+        doc.addImage(logoImg, "PNG", 40, 40, logoWidth, logoHeight);
+      } catch (e) {
+        console.warn("Could not add main logo to PDF", e);
+      }
+    }
+
+    doc.setFontSize(24);
+    doc.text(`${brandName}`, 40, 100);
+    doc.setFontSize(16);
+    doc.setTextColor(100);
+    doc.text("Brand Guidelines", 40, 125);
+    doc.setTextColor(0);
+
+    let y = 160;
     for (let s of sections) {
       doc.setFontSize(16);
       doc.text(s.title, 40, y);
