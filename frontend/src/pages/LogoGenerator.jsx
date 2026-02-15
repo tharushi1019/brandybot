@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 
+import { generateLogo } from "../services/logoService";
+
 export default function LogoGenerator() {
   const [messages, setMessages] = useState([
     {
@@ -10,30 +12,55 @@ export default function LogoGenerator() {
   ]);
   const [input, setInput] = useState("");
   const [brandInfo, setBrandInfo] = useState({ name: "", style: "", industry: "" });
-  const [logos, setLogos] = useState([]); // store mock logos
-  const [selectedLogo, setSelectedLogo] = useState(null); // NEW
+  const [logos, setLogos] = useState([]);
+  const [selectedLogo, setSelectedLogo] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
+    // Clear input immediately
+    const currentInput = input;
+    setInput("");
+
     // Step 1: Collect brand info
     if (!brandInfo.name) {
-      setBrandInfo((prev) => ({ ...prev, name: input }));
+      setBrandInfo((prev) => ({ ...prev, name: currentInput }));
       botReply("Great! Now tell me your preferred style (e.g., modern, playful, classic).");
     } else if (!brandInfo.style) {
-      setBrandInfo((prev) => ({ ...prev, style: input }));
+      setBrandInfo((prev) => ({ ...prev, style: currentInput }));
       botReply("Nice! Finally, what industry is your brand in?");
     } else if (!brandInfo.industry) {
-      setBrandInfo((prev) => ({ ...prev, industry: input }));
-      botReply("Perfect! Generating some logo options for you…");
-      setTimeout(() => showMockLogos(), 1000);
-    }
+      const updatedBrandInfo = { ...brandInfo, industry: currentInput };
+      setBrandInfo(updatedBrandInfo);
 
-    setInput("");
+      botReply("Perfect! Generating some logo options for you...");
+      setIsLoading(true);
+
+      try {
+        // Call Backend API
+        const result = await generateLogo({
+          brandName: updatedBrandInfo.name,
+          prompt: `A ${updatedBrandInfo.style} logo for ${updatedBrandInfo.name} in ${currentInput} industry`,
+          style: updatedBrandInfo.style,
+          industry: currentInput
+        });
+
+        if (result.success && result.data) {
+          setLogos([result.data.logoUrl]); // Backend currently returns single logo
+          botReply("Here is a logo option based on your inputs!");
+        }
+      } catch (error) {
+        console.error("Generation Error:", error);
+        botReply("Sorry, I encountered an error generating your logo. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   const botReply = (text) => {
@@ -42,16 +69,6 @@ export default function LogoGenerator() {
     }, 500);
   };
 
-  // Step 2: Show mock logos
-  const showMockLogos = () => {
-    const mockLogos = [
-      "/src/assets/logos/logo1.png",
-      "/src/assets/logos/logo2.png",
-      "/src/assets/logos/logo3.png",
-    ];
-    setLogos(mockLogos);
-    botReply("Here are some logo options based on your inputs. You can select your favorite!");
-  };
 
   // Auto scroll to the latest message
   useEffect(() => {
@@ -87,11 +104,10 @@ export default function LogoGenerator() {
             className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[70%] p-4 rounded-3xl text-sm shadow-md border border-gray-100 ${
-                msg.sender === "user"
-                  ? "bg-gradient-to-br from-purple-600 to-purple-500 text-white shadow-lg"
-                  : "bg-white text-gray-800"
-              }`}
+              className={`max-w-[70%] p-4 rounded-3xl text-sm shadow-md border border-gray-100 ${msg.sender === "user"
+                ? "bg-gradient-to-br from-purple-600 to-purple-500 text-white shadow-lg"
+                : "bg-white text-gray-800"
+                }`}
             >
               {msg.sender === "bot" && (
                 <div className="flex items-center mb-2">
@@ -108,6 +124,20 @@ export default function LogoGenerator() {
           </div>
         ))}
 
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white text-gray-800 p-4 rounded-3xl text-sm shadow-md border border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <span className="ml-2 text-gray-500">Generating logo...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Step 2: Display mock logos */}
         {logos.length > 0 && (
           <div className="flex gap-5 mt-4 flex-wrap">
@@ -115,9 +145,8 @@ export default function LogoGenerator() {
               <div
                 key={i}
                 onClick={() => setSelectedLogo(logo)}
-                className={`border p-2 rounded-xl bg-white shadow-md cursor-pointer transition transform hover:scale-105 ${
-                  selectedLogo === logo ? "ring-4 ring-purple-500" : ""
-                }`}
+                className={`border p-2 rounded-xl bg-white shadow-md cursor-pointer transition transform hover:scale-105 ${selectedLogo === logo ? "ring-4 ring-purple-500" : ""
+                  }`}
               >
                 <img src={logo} alt={`Logo ${i + 1}`} className="h-40 w-40 object-contain" />
               </div>
@@ -145,6 +174,7 @@ export default function LogoGenerator() {
             <div className="flex gap-4 mt-3">
               <Link
                 to="/mockup_generator"
+                state={{ logoUrl: selectedLogo }}
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
               >
                 Go to Mockup Generator

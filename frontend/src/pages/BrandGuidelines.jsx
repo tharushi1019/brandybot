@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Chatbot from "../components/Chatbot";
-import { useLogo } from "../context/LogoContext"; // adjust path if needed
-import jsPDF from "jspdf"; // npm install jspdf
+import { useLogo } from "../context/LogoContext";
+import jsPDF from "jspdf";
+import { createBrand } from "../services/guidelineService";
 
 export default function BrandGuidelines() {
   const { logoData } = useLogo();
   const [sections, setSections] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
 
   const brandName = (logoData?.brandName || "Brand").trim() || "Brand";
   const logoUrl = logoData?.logoUrl || "/brandybot_icon.png";
@@ -188,6 +191,42 @@ export default function BrandGuidelines() {
     doc.save(`${brandName}_Brand_Guidelines.pdf`);
   };
 
+  const handleSaveBrand = async () => {
+    if (!brandName) return;
+
+    setIsSaving(true);
+    try {
+      await createBrand({
+        brandName: brandName,
+        tagline: "Generated via BrandyBot",
+        description: `Brand guidelines for ${brandName}`,
+        logo: {
+          primaryLogoUrl: logoUrl,
+          variants: []
+        },
+        guidelines: {
+          colors: {
+            primary: primaryColors[0],
+            secondary: secondaryColors[0],
+            accent: accentColors
+          },
+          typography: {
+            primaryFont: fontName,
+            secondaryFont: "Inter"
+          },
+          sections: sections // Save the generated text content
+        }
+      });
+      alert('Brand saved successfully!');
+      // navigate('/dashboard'); // Optional: redirect to dashboard
+    } catch (error) {
+      console.error('Failed to save brand:', error);
+      alert('Failed to save brand. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleShareGuidelines = () => {
     if (navigator.share) {
       navigator.share({
@@ -308,6 +347,13 @@ export default function BrandGuidelines() {
           <p className="text-gray-600">© 2024 BrandyBot. All rights reserved.</p>
           <div className="flex gap-4">
             <button
+              onClick={handleSaveBrand}
+              disabled={isSaving}
+              className={`px-6 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all shadow-md font-medium ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isSaving ? 'Saving...' : 'Save to Dashboard'}
+            </button>
+            <button
               onClick={handleDownloadPDF}
               className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all shadow-md font-medium"
             >
@@ -323,9 +369,9 @@ export default function BrandGuidelines() {
         </div>
       </footer>
       {/* Chatbot Floating Button */}
-            <div className="fixed bottom-6 right-6">
-              <Chatbot />
-            </div>
+      <div className="fixed bottom-6 right-6">
+        <Chatbot />
+      </div>
     </div>
   );
 }
