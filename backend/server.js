@@ -2,23 +2,23 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { validateEnv, getConfig } = require('./config/env');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 
-// Validate environment variables
-try {
-    validateEnv();
-} catch (error) {
-    console.error('❌ Environment Validation Error:', error.message);
-    process.exit(1);
+// Validate environment variables (skip in test mode)
+if (process.env.NODE_ENV !== 'test') {
+    try {
+        validateEnv();
+    } catch (error) {
+        console.error('❌ Environment Validation Error:', error.message);
+        process.exit(1);
+    }
 }
 
 const config = getConfig();
 
-// Connect to MongoDB (only if URI is configured)
-if (config.mongodb.uri && config.mongodb.uri !== 'mongodb://localhost:27017/brandybot') {
+// Connect to PostgreSQL
+if (process.env.NODE_ENV !== 'test') {
     connectDB();
-} else {
-    console.log('⚠️  MongoDB URI not configured - skipping database connection');
 }
 
 const app = express();
@@ -39,6 +39,10 @@ app.use(express.json({ limit: '10mb' })); // Body parser with size limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', apiLimiter); // Rate limiting for API routes
 
+// Serve static files
+const path = require('path');
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/logos', require('./routes/logoRoutes'));
@@ -46,6 +50,7 @@ app.use('/api/brands', require('./routes/brandRoutes'));
 app.use('/api/mockups', require('./routes/mockupRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/utils', require('./routes/utilRoutes'));
 
 // Basic route
 app.get('/', (req, res) => {
@@ -71,10 +76,12 @@ app.use(errorHandler);
 
 const PORT = config.port;
 
-app.listen(PORT, () => {
-    console.log(`🚀 BrandyBot Backend Server running on port ${PORT}`);
-    console.log(`📍 Environment: ${config.env}`);
-    console.log(`🌐 Frontend URL: ${config.frontend.url}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 BrandyBot Backend Server running on port ${PORT}`);
+        console.log(`📍 Environment: ${config.env}`);
+        console.log(`🌐 Frontend URL: ${config.frontend.url}`);
+    });
+}
 
 module.exports = app;

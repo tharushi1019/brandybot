@@ -1,6 +1,6 @@
 /**
  * Error Handling Middleware
- * Global error handler for Express application
+ * Global error handler for Express application (PostgreSQL / Supabase)
  */
 
 const { isDevelopment } = require('../config/env');
@@ -23,7 +23,7 @@ const errorHandler = (err, req, res, next) => {
     logError(err, req);
 
     // Determine status code
-    const statusCode = err.statusCode || res.statusCode || 500;
+    let statusCode = err.statusCode || res.statusCode || 500;
 
     // Prepare error response
     const errorResponse = {
@@ -38,25 +38,37 @@ const errorHandler = (err, req, res, next) => {
         errorResponse.error = err;
     }
 
-    // Handle specific error types
-    if (err.name === 'ValidationError') {
-        errorResponse.message = 'Validation Error';
-        errorResponse.errors = Object.values(err.errors).map(e => e.message);
+    // Handle PostgreSQL-specific error codes (replaces old MongoDB handlers)
+    if (err.code === '23505') {
+        // Unique constraint violation (e.g., duplicate email)
+        statusCode = 409;
+        errorResponse.status = 'fail';
+        errorResponse.message = 'A record with this value already exists.';
     }
 
-    if (err.name === 'CastError') {
-        errorResponse.message = 'Invalid ID format';
+    if (err.code === '23503') {
+        // Foreign key constraint violation
+        statusCode = 400;
+        errorResponse.status = 'fail';
+        errorResponse.message = 'Referenced record does not exist.';
     }
 
-    if (err.code === 11000) {
-        errorResponse.message = 'Duplicate field value entered';
+    if (err.code === '22P02') {
+        // Invalid text representation (e.g., malformed UUID)
+        statusCode = 400;
+        errorResponse.status = 'fail';
+        errorResponse.message = 'Invalid ID format.';
     }
 
     if (err.name === 'JsonWebTokenError') {
+        statusCode = 401;
+        errorResponse.status = 'fail';
         errorResponse.message = 'Invalid token';
     }
 
     if (err.name === 'TokenExpiredError') {
+        statusCode = 401;
+        errorResponse.status = 'fail';
         errorResponse.message = 'Token expired';
     }
 

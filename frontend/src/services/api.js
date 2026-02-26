@@ -3,7 +3,7 @@ import { auth } from '../firebaseConfig';
 
 // Create Axios Instance
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // TODO: Use env variable import.meta.env.VITE_API_URL
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', // Uses env variable with local fallback
   headers: {
     'Content-Type': 'application/json',
   },

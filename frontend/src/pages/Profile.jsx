@@ -160,20 +160,20 @@ export default function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {brands.map((brand) => (
                 <div
-                  key={brand._id}
+                  key={brand.id}
                   className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:shadow-lg transition bg-white group cursor-default"
                 >
                   <img
-                    src={brand.logo?.primaryLogoUrl}
-                    alt={brand.brandName}
+                    src={brand.logo?.primaryLogoUrl || '/brandybot_icon.png'}
+                    alt={brand.brand_name}
                     className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 object-contain p-1"
                   />
                   <div>
                     <h4 className="font-bold text-gray-800 text-lg group-hover:text-purple-600 transition">
-                      {brand.brandName}
+                      {brand.brand_name}
                     </h4>
                     <p className="text-sm text-gray-500">
-                      Created on {new Date(brand.createdAt).toLocaleDateString()}
+                      Created on {brand.created_at ? new Date(brand.created_at).toLocaleDateString() : ''}
                     </p>
                     <span className="inline-block mt-2 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-md font-medium">
                       {brand.status}

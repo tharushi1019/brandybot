@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FiHome, FiSettings, FiUser, FiLogOut, FiPlus } from "react-icons/fi";
+import { FiHome, FiSettings, FiUser, FiLogOut, FiPlus, FiImage } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { logoutUser } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
@@ -39,7 +39,7 @@ const Dashboard = () => {
         // Based on Phase 4, getLogoHistory returns { success: true, count: number, data: [] }
 
         setStats({
-          logosGenerated: logosResponse.count || 0,
+          logosGenerated: logosResponse.pagination?.total ?? logosResponse.count ?? 0,
           brandsCreated: brands.length
         });
 
@@ -68,7 +68,7 @@ const Dashboard = () => {
       setRecentBrands(allBrands);
     } else {
       const filtered = allBrands.filter(brand =>
-        brand.brandName.toLowerCase().includes(searchQuery.toLowerCase())
+        (brand.brand_name || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
       setRecentBrands(filtered);
     }
@@ -101,36 +101,29 @@ const Dashboard = () => {
         </h2>
 
         <nav>
-          <ul className="space-y-4">
+          <ul className="space-y-2">
             <li>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-3 p-3 rounded-xl bg-white/10 text-white font-medium shadow-sm border border-white/20"
-              >
+              <Link to="/dashboard" className="flex items-center gap-3 p-3 rounded-xl bg-white/10 text-white font-medium shadow-sm border border-white/20">
                 <FiHome className="text-lg" /> Dashboard
               </Link>
             </li>
             <li>
-              <Link
-                to="/profile"
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 hover:text-white transition opacity-90 hover:opacity-100"
-              >
+              <Link to="/logo_history" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 hover:text-white transition opacity-90 hover:opacity-100">
+                <FiImage className="text-lg" /> My Logos
+              </Link>
+            </li>
+            <li>
+              <Link to="/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 hover:text-white transition opacity-90 hover:opacity-100">
                 <FiUser className="text-lg" /> Profile
               </Link>
             </li>
             <li>
-              <Link
-                to="/settings"
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 hover:text-white transition opacity-90 hover:opacity-100"
-              >
+              <Link to="/settings" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 hover:text-white transition opacity-90 hover:opacity-100">
                 <FiSettings className="text-lg" /> Settings
               </Link>
             </li>
             <li>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/20 hover:text-red-200 transition w-full text-left opacity-90 hover:opacity-100 mt-8"
-              >
+              <button onClick={handleLogout} className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/20 hover:text-red-200 transition w-full text-left opacity-90 hover:opacity-100 mt-6">
                 <FiLogOut className="text-lg" /> Logout
               </button>
             </li>
@@ -144,7 +137,7 @@ const Dashboard = () => {
         <header className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Welcome back, {user?.displayName || "User"} 👋
+              Welcome back, {user?.displayName || user?.email?.split('@')[0] || 'there'} 👋
             </h1>
             <p className="text-gray-500 text-sm mt-1">Here's what's happening with your brands.</p>
           </div>
@@ -230,20 +223,22 @@ const Dashboard = () => {
               {recentBrands.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {recentBrands.map((brand) => (
-                    <div key={brand._id} className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition bg-gray-50">
+                    <div key={brand.id} className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition bg-gray-50">
                       <div className="flex items-center gap-4">
-                        <img
-                          src={brand.logo?.primaryLogoUrl || "/brandybot_icon.png"}
-                          alt={brand.brandName}
-                          className="w-16 h-16 rounded-lg bg-white object-contain border border-gray-200"
-                        />
-                        <div>
-                          <h3 className="font-bold text-gray-800 text-lg">{brand.brandName}</h3>
+                        <div className="w-16 h-16 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          <img
+                            src="/brandybot_icon.png"
+                            alt={brand.brand_name}
+                            className="w-10 h-10 object-contain opacity-40"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-gray-800 text-lg truncate">{brand.brand_name}</h3>
                           <p className="text-xs text-gray-500">
-                            {new Date(brand.updatedAt).toLocaleDateString()}
+                            {brand.updated_at ? new Date(brand.updated_at).toLocaleDateString() : ''}
                           </p>
                           <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-md font-medium capitalize">
-                            {brand.status}
+                            {brand.status || 'active'}
                           </span>
                         </div>
                       </div>
@@ -263,44 +258,34 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <section>
               <h2 className="text-xl font-bold text-gray-800 mb-6">Quick Tools</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Link
-                  to="/logo_generator"
-                  className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group"
-                >
-                  <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link to="/logo_generator" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                  <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
                     <span className="text-2xl">🎨</span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">Logo Generator</h3>
-                  <p className="text-gray-500 text-sm">
-                    Design a new logo using AI in seconds.
-                  </p>
+                  <h3 className="text-base font-bold text-gray-800 mb-1">Logo Generator</h3>
+                  <p className="text-gray-500 text-xs">AI-powered logo design in minutes.</p>
                 </Link>
-
-                <Link
-                  to="/brand_guidelines"
-                  className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group"
-                >
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                <Link to="/logo_history" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                  <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <span className="text-2xl">🗂️</span>
+                  </div>
+                  <h3 className="text-base font-bold text-gray-800 mb-1">My Logos</h3>
+                  <p className="text-gray-500 text-xs">View and reuse your generated logos.</p>
+                </Link>
+                <Link to="/brand_guidelines" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
                     <span className="text-2xl">📘</span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">Brand Guidelines</h3>
-                  <p className="text-gray-500 text-sm">
-                    View and export your brand identity.
-                  </p>
+                  <h3 className="text-base font-bold text-gray-800 mb-1">Brand Guidelines</h3>
+                  <p className="text-gray-500 text-xs">Export your brand identity kit.</p>
                 </Link>
-
-                <Link
-                  to="/mockup_generator"
-                  className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group"
-                >
-                  <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                <Link to="/mockup_generator" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                  <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
                     <span className="text-2xl">👕</span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">Mockup Generator</h3>
-                  <p className="text-gray-500 text-sm">
-                    Visualize your brand on products.
-                  </p>
+                  <h3 className="text-base font-bold text-gray-800 mb-1">Mockup Generator</h3>
+                  <p className="text-gray-500 text-xs">Visualize your brand on products.</p>
                 </Link>
               </div>
             </section>

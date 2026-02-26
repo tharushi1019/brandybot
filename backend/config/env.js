@@ -12,7 +12,7 @@ const requiredEnvVars = {
     production: [
         'NODE_ENV',
         'PORT',
-        'MONGODB_URI',
+        'DATABASE_URL',
         'FRONTEND_URL',
         'FIREBASE_PROJECT_ID',
         'FIREBASE_PRIVATE_KEY',
@@ -47,8 +47,8 @@ const getConfig = () => {
     return {
         env: process.env.NODE_ENV || 'development',
         port: parseInt(process.env.PORT, 10) || 5000,
-        mongodb: {
-            uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/brandybot'
+        database: {
+            url: process.env.DATABASE_URL
         },
         frontend: {
             url: process.env.FRONTEND_URL || 'http://localhost:5173'
@@ -62,7 +62,8 @@ const getConfig = () => {
             secret: process.env.JWT_SECRET || 'dev-secret-change-in-production'
         },
         aiService: {
-            url: process.env.AI_SERVICE_URL || 'http://localhost:8000'
+            url: process.env.AI_SERVICE_URL || 'http://localhost:8000',
+            pollinationsKey: process.env.POLLINATIONS_API_KEY
         },
         rateLimit: {
             windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes

@@ -1,51 +1,54 @@
-const User = require('../models/User');
-const { catchAsync } = require('../utils/errorHandler'); // We need to add catchAsync to utils
+const { sql } = require('../config/db');
+const { catchAsync } = require('../utils/errorHandler');
 const { AppError } = require('../utils/AppError');
 
 /**
  * Sync User
- * Creates or updates user in MongoDB after Firebase login
+ * Creates or updates user in Database after Firebase login
  * Route: POST /api/auth/sync
  */
-exports.syncUser = async (req, res, next) => {
-    try {
-        // User is already attached to req by protect middleware
-        // We just need to update any changed details from the body or token
+exports.syncUser = catchAsync(async (req, res, next) => {
+    const { displayName, photoURL } = req.body;
+    const user = req.user;
 
-        const { displayName, photoURL } = req.body;
-        const user = req.user;
-
-        // Update fields if provided
-        if (displayName) user.displayName = displayName;
-        if (photoURL) user.photoURL = photoURL;
-
-        // Update last login
-        await user.updateLastLogin();
-
-        res.status(200).json({
-            success: true,
-            data: {
-                user
-            }
-        });
-    } catch (error) {
-        next(error);
+    const updates = {};
+    if (displayName && user.display_name !== displayName) {
+        updates.display_name = displayName;
     }
-};
+    if (photoURL && user.photo_url !== photoURL) {
+        updates.photo_url = photoURL;
+    }
+
+    // Always update last_login
+    updates.last_login = sql`NOW()`;
+
+    const [updatedUser] = await sql`
+        UPDATE users SET ${sql(updates, Object.keys(updates))}
+        WHERE id = ${user.id}
+        RETURNING *
+    `;
+
+    if (updatedUser) {
+        req.user = updatedUser;
+    }
+
+    res.status(200).json({
+        success: true,
+        data: {
+            user: req.user
+        }
+    });
+});
 
 /**
  * Get Current User
  * Route: GET /api/auth/me
  */
-exports.getMe = async (req, res, next) => {
-    try {
-        res.status(200).json({
-            success: true,
-            data: {
-                user: req.user
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+exports.getMe = catchAsync(async (req, res, next) => {
+    res.status(200).json({
+        success: true,
+        data: {
+            user: req.user
+        }
+    });
+});

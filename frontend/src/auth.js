@@ -1,25 +1,15 @@
-import { auth, db } from "./firebaseConfig";
+import { auth } from "./firebaseConfig";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; // Firestore imports
 
-// Signup function - stores user details in Firestore
-export const signup = async (email, password, { firstName, lastName, phone }) => {
+/**
+ * Signup — creates user in Firebase Auth only.
+ * User profile data (firstName, lastName, phone) is persisted in PostgreSQL
+ * by the backend auth middleware on the first authenticated API request (upsert).
+ */
+export const signup = async (email, password) => {
   try {
-    // Create user in Firebase Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    // Store additional user details in Firestore
-    await setDoc(doc(db, "users", user.uid), {
-      firstName,
-      lastName,
-      phone,
-      email,
-      uid: user.uid, // Store the user's unique ID
-      createdAt: new Date(),
-    });
-
-    return user;
+    return userCredential.user;
   } catch (error) {
     throw error;
   }
