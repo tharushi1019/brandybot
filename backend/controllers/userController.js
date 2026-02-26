@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { sql } = require('../config/db');
 const { catchAsync } = require('../utils/errorHandler');
 const { AppError } = require('../utils/AppError');
 const admin = require('firebase-admin');
@@ -23,21 +23,24 @@ exports.getProfile = catchAsync(async (req, res, next) => {
  */
 exports.updateProfile = catchAsync(async (req, res, next) => {
     const { displayName, preferences } = req.body;
-
     const user = req.user;
 
-    // Update fields
-    if (displayName) user.displayName = displayName;
+    const updates = {};
+    if (displayName !== undefined) updates.display_name = displayName;
 
-    // Update preferences (merge)
     if (preferences) {
-        user.preferences = {
-            ...user.preferences,
-            ...preferences
-        };
+        // Merge existing JSONB preferences with new preferences
+        updates.preferences = { ...user.preferences, ...preferences };
     }
 
-    await user.save();
+    if (Object.keys(updates).length > 0) {
+        const [updatedUser] = await sql`
+            UPDATE users SET ${sql(updates, Object.keys(updates))}
+            WHERE id = ${user.id}
+            RETURNING *
+        `;
+        if (updatedUser) Object.assign(user, updatedUser);
+    }
 
     res.status(200).json({
         success: true,
@@ -58,17 +61,13 @@ exports.deleteAccount = catchAsync(async (req, res, next) => {
         await admin.auth().deleteUser(user.uid);
     } catch (error) {
         console.error('Firebase user deletion failed:', error);
-        // Continue to delete from DB anyway, or throw error? 
-        // Best to continue to ensure data cleanup if possible, or fail if critical.
-        // For now, let's log and proceed.
     }
 
-    // 2. Delete from MongoDB
-    await User.findByIdAndDelete(user._id);
+    // 2. Delete from PostgreSQL
+    // ON DELETE CASCADE automatically sweeps out their brands and logo_history
+    await sql`DELETE FROM users WHERE id = ${user.id}`;
 
-    // TODO: Clean up related data (Brands, LogoHistory)? 
-    // Or keep them for analytics but anonymize? 
-    // Mongoose middleware (pre-remove) is better for cascading deletes.
+    console.log(`Successfully deleted user ${user.id} and all related data via CASCADE.`);
 
     res.status(200).json({
         success: true,

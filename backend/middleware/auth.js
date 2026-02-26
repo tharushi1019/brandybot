@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const User = require('../models/User');
+const { sql } = require('../config/db');
 const { AppError } = require('../utils/AppError');
 
 /**
@@ -23,18 +23,23 @@ const protect = async (req, res, next) => {
         const decodedToken = await admin.auth().verifyIdToken(token);
 
         // 3) Check if user exists in our DB, if not sync them (Upsert)
-        // This ensures that even if the sync endpoint wasn't called, we have the user
-        let user = await User.findByUid(decodedToken.uid);
+        let [user] = await sql`SELECT * FROM users WHERE uid = ${decodedToken.uid}`;
 
         if (!user) {
             // Create basic user profile from token info
-            user = await User.create({
-                uid: decodedToken.uid,
-                email: decodedToken.email,
-                displayName: decodedToken.name || '',
-                photoURL: decodedToken.picture || '',
-                provider: decodedToken.firebase.sign_in_provider || 'unknown'
-            });
+            const result = await sql`
+                INSERT INTO users (
+                    uid, email, display_name, photo_url, provider
+                ) VALUES (
+                    ${decodedToken.uid}, 
+                    ${decodedToken.email}, 
+                    ${decodedToken.name || ''}, 
+                    ${decodedToken.picture || ''}, 
+                    ${decodedToken.firebase.sign_in_provider || 'unknown'}
+                )
+                RETURNING *
+            `;
+            user = result[0];
         }
 
         // GRANT ACCESS TO PROTECTED ROUTE

@@ -18,6 +18,11 @@ app = FastAPI(
 
 app.include_router(api_router, prefix="/api/v1")
 
+# Mount Static Files
+from fastapi.staticfiles import StaticFiles
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,

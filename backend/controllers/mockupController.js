@@ -1,3 +1,5 @@
+const { catchAsync } = require('../utils/errorHandler');
+const { AppError } = require('../utils/AppError');
 const { generateMockupAI } = require('../services/aiService');
 
 /**

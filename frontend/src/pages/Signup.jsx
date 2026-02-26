@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { signup } from "../auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 
 const Signup = () => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -18,62 +18,71 @@ const Signup = () => {
       setError("Passwords do not match!");
       return;
     }
-
+    setLoading(true);
+    setError(null);
     try {
-      await signup(email, password, { firstName, lastName, phone });
+      await signup(email, password);
       navigate("/login");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // After Google signup, backend will upsert the user into PostgreSQL on first API call
+      navigate("/dashboard");
+    } catch (err) {
+      if (err.code !== "auth/popup-closed-by-user") {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="relative flex justify-center items-center min-h-screen bg-white overflow-hidden">
-
-      {/* ⭐ Glassmorphism Card */}
+      {/* Glassmorphism Card */}
       <div className="relative bg-white/70 backdrop-blur-lg border border-white/30 p-8 rounded-2xl shadow-2xl w-96">
-        
-        {/* ⭐ Logo watermark */}
-      <img
-        src="/brandybot_icon.png"
-        alt="logo"
-        className="absolute w-[420px] opacity-10 blur-sm select-none pointer-events-none"
-        style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
-      />
+
+        {/* Logo watermark */}
+        <img
+          src="/brandybot_icon.png"
+          alt="logo"
+          className="absolute w-[420px] opacity-10 blur-sm select-none pointer-events-none"
+          style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+        />
 
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-4">
           Create Account
         </h2>
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+
+        {/* Google Sign-Up Button */}
+        <button
+          onClick={handleGoogleSignup}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 p-3 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-md transition mb-4 disabled:opacity-60"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          Continue with Google
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-gray-400 text-sm">or</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
 
         <form onSubmit={handleSignup} className="space-y-3">
-          <input
-            type="text"
-            placeholder="First Name"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-          />
-
-          <input
-            type="text"
-            placeholder="Last Name"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-          />
-
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-
           <input
             type="email"
             placeholder="Email Address"
@@ -103,17 +112,18 @@ const Signup = () => {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white p-3 rounded-lg font-semibold transition"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white p-3 rounded-lg font-semibold transition hover:opacity-90 disabled:opacity-60"
           >
-            Sign Up
+            {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
 
         <p className="text-sm text-center mt-4 text-gray-600">
           Already have an account?{" "}
-          <a href="/login" className="text-purple-600 font-semibold hover:underline">
+          <Link to="/login" className="text-purple-600 font-semibold hover:underline">
             Sign In
-          </a>
+          </Link>
         </p>
       </div>
     </div>
