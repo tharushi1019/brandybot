@@ -92,6 +92,25 @@ const PricingCard = ({ name, credits, price, features, gradient, popular }) => (
   </div>
 );
 
+/* ─── Showcase Item ─────────────────────────────────────── */
+const ShowcaseItem = ({ src, name, delay }) => (
+  <div
+    className="group relative aspect-square rounded-3xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-card)] animate-fade-in-up shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500"
+    style={{ animationDelay: delay }}
+  >
+    <img src={src} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+      <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+        <p className="text-white font-black text-lg tracking-tight mb-1">{name}</p>
+        <div className="w-8 h-1 brand-gradient rounded-full" />
+      </div>
+    </div>
+    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+      <span className="text-white text-xs">✨</span>
+    </div>
+  </div>
+);
+
 /* ─── Main Home Page ─────────────────────────────────────── */
 export default function Home() {
   const { user } = useAuth();
@@ -129,12 +148,27 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  const showcaseLogos = [
+    { name: "CoreFlex", src: "/showcase/CoreFlex.jpg" },
+    { name: "CoreLink", src: "/showcase/CoreLink.png" },
+    { name: "Craftoria", src: "/showcase/Craftoria.jpg" },
+    { name: "ElleCove", src: "/showcase/ElleCove.png" },
+    { name: "LeafStart", src: "/showcase/LeafStart.png" },
+    { name: "LearnAxis", src: "/showcase/LearnAxis.png" },
+    { name: "NaturaE", src: "/showcase/NaturaE.png" },
+    { name: "Petale", src: "/showcase/Petale.png" },
+    { name: "PixelNest", src: "/showcase/PixelNest.png" },
+    { name: "PixelPollen", src: "/showcase/PixelPollen.jpg" },
+    { name: "PulseShift", src: "/showcase/PulseShift.png" },
+    { name: "QuickBite", src: "/showcase/QuickBite.png" },
+  ];
+
   return (
     <div style={{ background: "var(--bg-primary)", color: "var(--text-primary)", minHeight: "100vh" }}>
 
       {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between"
-           style={{ background: "var(--nav-bg)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border-color)" }}>
+        style={{ background: "var(--nav-bg)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border-color)" }}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center shadow-lg">
             <img src="/brandybot_icon.png" alt="Logo" className="w-5 h-5 object-contain" onError={e => e.target.style.display = "none"} />
@@ -168,15 +202,15 @@ export default function Home() {
         <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-15 pointer-events-none" style={{ background: "linear-gradient(to right, #3b82f6, #06b6d4)" }} />
 
         {/* Floating cards */}
-        <FloatingCard style={{ top: "10%", left: "8%"  }} gradient="linear-gradient(135deg,#7c3aed,#3b82f6)" icon="🎨" label="Logo"     delay="0ms" />
+        <FloatingCard style={{ top: "10%", left: "8%" }} gradient="linear-gradient(135deg,#7c3aed,#3b82f6)" icon="🎨" label="Logo" delay="0ms" />
         <FloatingCard style={{ top: "15%", right: "8%" }} gradient="linear-gradient(135deg,#ec4899,#7c3aed)" icon="📋" label="Guidelines" delay="400ms" />
         <FloatingCard style={{ bottom: "15%", left: "12%" }} gradient="linear-gradient(135deg,#f59e0b,#ef4444)" icon="👕" label="Mockup" delay="800ms" />
         <FloatingCard style={{ bottom: "20%", right: "10%" }} gradient="linear-gradient(135deg,#10b981,#3b82f6)" icon="🤖" label="AI Chat" delay="1200ms" />
 
         <div className="relative z-10 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 text-sm font-semibold"
-               style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)", color: "#a78bfa" }}>
-            🚀 New in 2026 — Conversational Logo AI
+            style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)", color: "#a78bfa" }}>
+            🚀 New in 2026 - Conversational Logo AI
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6">
@@ -188,7 +222,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            Just <strong>chat</strong> with BrandyBot — describe your brand, and watch AI design your logo, craft your brand guidelines, and generate mockups in minutes.
+            Just <strong>chat</strong> with BrandyBot - describe your brand, and watch AI design your logo, craft your brand guidelines, and generate mockups in minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -196,13 +230,13 @@ export default function Home() {
               ✨ Start Creating for Free
             </Link>
             <a href="#how-it-works" className="px-8 py-4 rounded-2xl font-bold text-lg hover:bg-[var(--bg-card-hover)] transition border"
-               style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}>
+              style={{ borderColor: "var(--border-color)", color: "var(--text-primary)" }}>
               Watch How It Works ↓
             </a>
           </div>
 
           <p className="mt-6 text-sm" style={{ color: "var(--text-muted)" }}>
-            No credit card required · 1 free logo for guests · 50 credits for registered users
+            No credit card required · 1 free logo for guests · 3 free credits for registered users
           </p>
         </div>
       </section>
@@ -216,7 +250,7 @@ export default function Home() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           <FeatureCard icon="🤖" title="Logo Agent AI" desc="Chat naturally about your brand. The AI understands your vision and generates the perfect logo through conversation." gradient="from-purple-600 to-blue-500" delay="0ms" />
           <FeatureCard icon="🎨" title="50-Line SD Prompts" desc="Advanced prompt engineering generates ultra-detailed Stable Diffusion prompts for professional-grade logo imagery." gradient="from-pink-600 to-purple-600" delay="100ms" />
-          <FeatureCard icon="📋" title="Brand Guidelines" desc="Get a complete brand style guide — color palettes, typography, voice and tone — synced to your actual logo." gradient="from-blue-600 to-cyan-500" delay="200ms" />
+          <FeatureCard icon="📋" title="Brand Guidelines" desc="Get a complete brand style guide - color palettes, typography, voice and tone - synced to your actual logo." gradient="from-blue-600 to-cyan-500" delay="200ms" />
           <FeatureCard icon="👕" title="Mockup Studio" desc="Preview your logo on business cards, t-shirts, mugs, website heroes, and social banners instantly." gradient="from-amber-500 to-orange-500" delay="300ms" />
         </div>
       </section>
@@ -231,7 +265,7 @@ export default function Home() {
           <div className="relative grid md:grid-cols-3 gap-8">
             {/* Connector lines (desktop only) */}
             <div className="hidden md:block absolute top-8 left-1/3 right-1/3 h-0.5 brand-gradient opacity-40" />
-            <StepCard num="1" icon="💬" title="Chat Your Vision" desc="Tell BrandyBot about your brand — industry, style, colors. No forms, just conversation." />
+            <StepCard num="1" icon="💬" title="Chat Your Vision" desc="Tell BrandyBot about your brand - industry, style, colors. No forms, just conversation." />
             <StepCard num="2" icon="🧠" title="AI Designs It" desc="Advanced AI generates a professional logo from a 50-line engineered prompt in under 2 minutes." />
             <StepCard num="3" icon="⬇" title="Download & Use" desc="Get your logo, brand guidelines PDF, and mockups. Ready for use across all platforms." />
           </div>
@@ -244,16 +278,14 @@ export default function Home() {
           <h2 className="text-4xl font-black mb-3 brand-gradient-text">AI-Generated Brands</h2>
           <p style={{ color: "var(--text-secondary)" }}>Real logos built with BrandyBot in under 2 minutes</p>
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {["🌟", "⚡", "🔥", "💎", "🎯", "🚀", "🌊", "🦋", "🎨", "🏆", "💫", "🌈"].map((emoji, i) => (
-            <div key={i} className="aspect-square rounded-2xl flex items-center justify-center text-4xl animate-fade-in-up"
-                 style={{
-                   background: `linear-gradient(135deg, hsl(${i * 30},70%,30%), hsl(${i * 30 + 60},70%,20%))`,
-                   animationDelay: `${i * 60}ms`,
-                   border: "1px solid var(--border-color)"
-                 }}>
-              {emoji}
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          {showcaseLogos.map((logo, i) => (
+            <ShowcaseItem
+              key={i}
+              src={logo.src}
+              name={logo.name}
+              delay={`${i * 100}ms`}
+            />
           ))}
         </div>
       </section>
@@ -266,11 +298,11 @@ export default function Home() {
             <p style={{ color: "var(--text-secondary)" }}>Start free, scale as you grow</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 items-center">
-            <PricingCard name="Guest"   credits={0}   price={0}    popular={false} gradient="from-gray-500 to-gray-600"
+            <PricingCard name="Guest" credits={0} price={0} popular={false} gradient="from-gray-500 to-gray-600"
               features={["1 free logo generation", "Download PNG", "No sign-up required"]} />
-            <PricingCard name="Starter" credits={50}  price={4.99} popular={true}  gradient="from-purple-600 to-blue-500"
+            <PricingCard name="Starter" credits={50} price={4.99} popular={true} gradient="from-purple-600 to-blue-500"
               features={["50 logo generations", "Brand guidelines", "Mockup studio", "Chat history", "All styles"]} />
-            <PricingCard name="Pro"     credits={150} price={9.99} popular={false} gradient="from-pink-600 to-purple-600"
+            <PricingCard name="Pro" credits={150} price={9.99} popular={false} gradient="from-pink-600 to-purple-600"
               features={["150 logo generations", "Everything in Starter", "Priority generation", "HD downloads", "Commercial rights"]} />
           </div>
         </div>
