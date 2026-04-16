@@ -26,13 +26,14 @@ def generate_image_pollinations(prompt: str) -> bytes:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
+    response = None
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.content
     except requests.exceptions.RequestException as e:
         print(f"Pollinations API Error: {e}")
-        if response.content:
+        if response is not None and response.content:
              print(f"Error Details: {response.content.decode('utf-8')}")
         raise e
 

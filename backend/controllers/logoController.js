@@ -88,6 +88,9 @@ exports.generateLogo = catchAsync(async (req, res, next) => {
             colors: colors ? [colors] : []
         });
 
+        // GRANT ACCESS TO PROTECTED ROUTE
+        console.log(`🔓 User Auth Success: ${req.user.email} (UUID: ${req.user.id})`);
+
         // 4. Upload logo to ImgBB
         let logoUrl = aiResult.url;
         try {
@@ -156,15 +159,26 @@ exports.getLogoHistory = catchAsync(async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const offset = (page - 1) * limit;
 
+    console.log(`📡 Fetching logo history for user: ${req.user.id} (Page: ${page}, Limit: ${limit})`);
+    
+    // Only return successfully completed logos — not failed or processing
     const history = await sql`
         SELECT * FROM logo_history
         WHERE user_id = ${req.user.id}
+          AND status = 'completed'
+          AND logo_url IS NOT NULL
+          AND logo_url != 'processing...'
         ORDER BY created_at DESC
         LIMIT ${limit} OFFSET ${offset}
     `;
 
+    console.log(`✅ Found ${history.length} completed logos for user ${req.user.id}`);
+
     const [{ count }] = await sql`
-        SELECT count(*) as count FROM logo_history WHERE user_id = ${req.user.id}
+        SELECT count(*) as count FROM logo_history
+        WHERE user_id = ${req.user.id}
+          AND status = 'completed'
+          AND logo_url != 'processing...'
     `;
     const total = parseInt(count, 10);
 
@@ -175,6 +189,7 @@ exports.getLogoHistory = catchAsync(async (req, res, next) => {
         data: history
     });
 });
+
 
 /**
  * @desc    Get single logo details

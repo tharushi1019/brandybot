@@ -274,20 +274,17 @@ export default function MockUpGenerator() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
-      {/* Header */}
-      <header className="p-5 flex items-center justify-between shadow-lg" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6)" }}>
-        <div className="flex items-center gap-3">
-          <Link to="/"><img src="/brandybot_icon.png" className="h-10 w-10 rounded-full shadow-md ring-2 ring-white/30" alt="BrandyBot" /></Link>
-          <div>
-            <h1 className="text-xl font-bold text-white">Mockup Generator</h1>
-            <p className="text-purple-200 text-xs">Preview your brand on real products</p>
-          </div>
+    <div className="flex flex-col h-full w-full relative">
+      {/* Contextual Top Bar */}
+      <div className="flex items-center justify-between px-6 py-4 md:pl-20 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] flex-shrink-0">
+        <div>
+          <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Mockup Generator</h1>
+          <p className="text-sm text-[var(--text-muted)]">Preview your brand on real products</p>
         </div>
         {passedLogoUrl && (
-          <img src={passedLogoUrl} alt="Your logo" className="h-10 w-10 rounded-lg bg-white p-1 object-contain shadow" />
+          <img src={passedLogoUrl} alt="Your logo" className="h-10 w-10 rounded-lg bg-white p-1 object-contain border border-[var(--border-color)] shadow-sm" />
         )}
-      </header>
+      </div>
 
 
       {/* No logo passed */}
@@ -349,9 +346,9 @@ export default function MockUpGenerator() {
       {/* Footer */}
       {
         mockups.length > 0 && (
-          <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-2xl">
+          <footer className="sticky bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] mt-auto z-10 w-full">
             <div className="max-w-5xl mx-auto px-6 py-4 flex gap-3 justify-end">
-              <button onClick={generateMockups} className="px-5 py-2 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+              <button onClick={generateMockups} className="px-5 py-2 text-[var(--text-primary)] border border-[var(--border-color)] bg-[var(--bg-card)] rounded-xl text-sm font-medium hover:bg-[var(--bg-card-hover)] transition">
                 🔄 Regenerate
               </button>
               <button onClick={handleDownloadAll} className="px-5 py-2 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6)" }}>
