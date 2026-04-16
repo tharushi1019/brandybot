@@ -42,9 +42,11 @@ const helmetConfig = helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", 'data:', 'https:'],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'https:', "http://localhost:5000", "https://i.ibb.co"],
+            connectSrc: ["'self'", "http://localhost:5000", "https://generativelanguage.googleapis.com", "https://api.imgbb.com", "https://*.ngrok-free.dev"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
         },
     },
     crossOriginEmbedderPolicy: false,

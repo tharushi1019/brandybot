@@ -1,188 +1,213 @@
 import { useState, useEffect } from "react";
-import { FiCamera, FiEdit2, FiSave, FiX } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getUserBrands } from "../services/guidelineService";
+import { getLogoHistory } from "../services/logoService";
 import { updateUserProfile } from "../services/authService";
+import { logoutUser } from "../services/authService";
+import axios from "axios";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const StatBadge = ({ icon, label, value }) => (
+  <div className="flex-1 p-4 rounded-2xl glass-card text-center">
+    <div className="text-2xl mb-1">{icon}</div>
+    <p className="text-xl font-black" style={{ color: "var(--text-primary)" }}>{value}</p>
+    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+  </div>
+);
 
 export default function Profile() {
+  const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
 
-  // 🔹 Firebase user (from AuthContext)
-  const { user } = useAuth();
-
   const [brands, setBrands] = useState([]);
+  const [logos, setLogos] = useState([]);
+  const [credits, setCredits] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [photoURL, setPhotoURL] = useState(user?.photoURL || "");
   const [updating, setUpdating] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName || "");
-      setPhotoURL(user.photoURL || "");
-      fetchBrands();
-    }
+    if (!user) return;
+    setDisplayName(user.displayName || "");
+    setPhotoURL(user.photoURL || "");
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const token = await user.getIdToken();
+        const [brandsRes, logosRes, creditsRes] = await Promise.allSettled([
+          getUserBrands(),
+          getLogoHistory(1, 6),
+          axios.get(`${API}/credits`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        setBrands(brandsRes.status === "fulfilled" ? brandsRes.value.data || [] : []);
+        setLogos(logosRes.status === "fulfilled" ? logosRes.value.data || [] : []);
+        setCredits(creditsRes.status === "fulfilled" ? creditsRes.value?.data?.data?.balance ?? 50 : null);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    fetch();
   }, [user]);
 
-  const fetchBrands = async () => {
+  const handleSave = async () => {
+    setUpdating(true);
     try {
-      setLoading(true);
-      const response = await getUserBrands();
-      setBrands(response.data || []);
-    } catch (error) {
-      console.error("Failed to fetch brands:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateProfile = async () => {
-    try {
-      setUpdating(true);
-      await updateUserProfile({
-        displayName: displayName,
-        photoURL: photoURL
-      });
+      await updateUserProfile({ displayName, photoURL });
+      setSaveMsg("Profile updated! ✓");
       setIsEditing(false);
-      // Force reload or just let AuthContext update naturally (might need page refresh to see changes if context doesn't auto-update immediately)
-      // Usually AuthContext listens to onAuthStateChanged, which triggers on updateProfile? No, updateProfile doesn't always trigger listener immediately.
-      // But for UI feedback:
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error("Update failed:", error);
-      alert("Failed to update profile: " + error.message);
+      setTimeout(() => setSaveMsg(null), 3000);
+    } catch (e) {
+      setSaveMsg("Save failed: " + e.message);
     } finally {
       setUpdating(false);
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (window.confirm("Are you sure? This action is PERMANENT and cannot be undone.")) {
+      try {
+        const token = await user.getIdToken();
+        await axios.delete(`${API}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+        await logoutUser();
+        navigate("/");
+      } catch (e) { alert("Delete failed: " + e.message); }
+    }
+  };
+
+  const joined = user?.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "Recently";
+
   return (
-    <div className="p-6">
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-500 p-6 rounded-2xl shadow-lg mb-8 text-white">
-        <h1 className="text-3xl font-bold">Your Profile</h1>
-        <p className="opacity-90 mt-1">
-          Manage your account and view your branding history
-        </p>
+    <div className="flex flex-col h-full w-full relative">
+      {/* Contextual Top Bar */}
+      <div className="flex items-center justify-between px-6 py-4 md:pl-20 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] flex-shrink-0">
+        <div>
+          <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Your Profile</h1>
+          <p className="text-sm text-[var(--text-muted)]">Manage your account and brand history</p>
+        </div>
       </div>
 
-      {/* Profile Card */}
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-4xl mx-auto border border-gray-100">
-        {/* User Info */}
-        <div className="flex flex-col items-center">
-          <div className="relative group">
-            <img
-              src={photoURL || defaultAvatar}
-              alt="User Avatar"
-              className="w-32 h-32 rounded-full object-cover border-4 border-purple-100 shadow-md transition group-hover:border-purple-300"
-            />
-            {isEditing && (
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white cursor-pointer" title="Change Photo URL">
-                <FiCamera size={24} />
-              </div>
-            )}
-          </div>
+      <div className="flex-1 max-w-4xl mx-auto px-6 py-10 w-full">
 
-          {isEditing ? (
-            <div className="mt-6 w-full max-w-sm space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Display Name</label>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Photo URL</label>
-                <input
-                  type="text"
-                  value={photoURL}
-                  onChange={(e) => setPhotoURL(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                />
-              </div>
-              <div className="flex gap-2 justify-center mt-4">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-2"
-                >
-                  <FiX /> Cancel
-                </button>
-                <button
-                  onClick={handleUpdateProfile}
-                  disabled={updating}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
-                >
-                  {updating ? "Saving..." : <><FiSave /> Save Changes</>}
-                </button>
+        {/* Avatar Card */}
+        <div className="p-6 rounded-3xl mb-6 glass-card" style={{ border: "1px solid var(--border-color)" }}>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <img
+                src={isEditing && photoURL ? photoURL : (user?.photoURL || defaultAvatar)}
+                alt="avatar"
+                onError={e => e.target.src = defaultAvatar}
+                className="w-24 h-24 rounded-3xl object-cover shadow-xl"
+                style={{ border: "3px solid var(--border-focus)" }}
+              />
+              <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl brand-gradient flex items-center justify-center text-white text-xs shadow-lg">
+                ✓
               </div>
             </div>
-          ) : (
-            <>
-              <h2 className="text-2xl font-bold text-gray-800 mt-4 flex items-center gap-2">
-                {user?.displayName || "User"}
-                <button onClick={() => setIsEditing(true)} className="text-gray-400 hover:text-purple-600 transition">
-                  <FiEdit2 size={16} />
-                </button>
-              </h2>
-              <p className="text-gray-500 font-medium">
-                {user?.email || "No email available"}
-              </p>
-            </>
-          )}
+
+            {/* Info / Edit */}
+            <div className="flex-1 text-center sm:text-left">
+              {isEditing ? (
+                <div className="space-y-3 max-w-sm">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Display Name</label>
+                    <input value={displayName} onChange={e => setDisplayName(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl text-sm outline-none"
+                      style={{ background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Photo URL</label>
+                    <input value={photoURL} onChange={e => setPhotoURL(e.target.value)} placeholder="https://..."
+                      className="w-full mt-1 px-3 py-2 rounded-xl text-sm outline-none"
+                      style={{ background: "var(--bg-input)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }} />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm rounded-xl border" style={{ borderColor: "var(--border-color)", color: "var(--text-secondary)" }}>Cancel</button>
+                    <button onClick={handleSave} disabled={updating} className="px-5 py-2 text-sm rounded-xl brand-gradient text-white font-semibold hover:opacity-90 disabled:opacity-50">
+                      {updating ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                  {saveMsg && <p className="text-xs text-green-400">{saveMsg}</p>}
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-black" style={{ color: "var(--text-primary)" }}>
+                    {user?.displayName || "User"}
+                  </h2>
+                  <p className="mt-0.5 text-sm" style={{ color: "var(--text-muted)" }}>{user?.email}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Member since {joined}</p>
+                  <button onClick={() => setIsEditing(true)} className="mt-3 px-4 py-1.5 rounded-xl text-xs font-semibold brand-gradient text-white hover:opacity-90 transition shadow-md">
+                    ✏️ Edit Profile
+                  </button>
+                  {saveMsg && <p className="text-xs text-green-400 mt-2">{saveMsg}</p>}
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Divider */}
-        <hr className="my-8 border-gray-100" />
+        {/* Stats Row */}
+        <div className="flex gap-3 mb-6">
+          <StatBadge icon="🎨" label="Logos Made" value={logos.length} />
+          <StatBadge icon="🏷"  label="Brands"    value={brands.length} />
+          <StatBadge icon="💎" label="Credits"    value={credits !== null ? credits : "—"} />
+        </div>
 
-        {/* Branding History */}
-        <div>
-          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span className="bg-purple-100 text-purple-600 p-2 rounded-lg text-sm">HISTORY</span>
-            Branding Projects
-          </h3>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        {/* Recent Logos */}
+        {logos.length > 0 && (
+          <div className="p-5 rounded-2xl glass-card mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>Recent Logos</h3>
+              <Link to="/logo_history" className="text-xs text-purple-400 hover:underline">View all →</Link>
             </div>
-          ) : brands.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-500">You haven’t created any branding projects yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {brands.map((brand) => (
-                <div
-                  key={brand.id}
-                  className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:shadow-lg transition bg-white group cursor-default"
-                >
-                  <img
-                    src={brand.logo?.primaryLogoUrl || '/brandybot_icon.png'}
-                    alt={brand.brand_name}
-                    className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 object-contain p-1"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-800 text-lg group-hover:text-purple-600 transition">
-                      {brand.brand_name}
-                    </h4>
-                    <p className="text-sm text-gray-500">
-                      Created on {brand.created_at ? new Date(brand.created_at).toLocaleDateString() : ''}
-                    </p>
-                    <span className="inline-block mt-2 text-xs px-2 py-1 bg-green-100 text-green-700 rounded-md font-medium">
-                      {brand.status}
-                    </span>
-                  </div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {logos.slice(0, 6).map(l => (
+                <div key={l.id} className="aspect-square rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-color)" }}>
+                  <img src={l.logo_url} alt={l.brand_name} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* My Brands */}
+        {brands.length > 0 && (
+          <div className="p-5 rounded-2xl glass-card mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>Recent Brands</h3>
+              <Link to="/dashboard" className="text-xs text-purple-400 hover:underline">All brands →</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {brands.slice(0, 6).map(b => (
+                <div key={b.id} className="flex-shrink-0 p-3 rounded-xl glass-card text-center w-28">
+                  <img src={b.logo?.primaryLogoUrl || "/brandybot_icon.png"} alt={b.brand_name}
+                    className="w-12 h-12 object-contain rounded-lg mx-auto mb-2" />
+                  <p className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>{b.brand_name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Danger Zone */}
+        <div className="p-5 rounded-2xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+          <h3 className="font-bold text-red-400 mb-1">Danger Zone</h3>
+          <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>Permanently delete your account and all associated data. This cannot be undone.</p>
+          <button onClick={handleDeleteAccount}
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/20 transition">
+            Delete My Account
+          </button>
         </div>
       </div>
     </div>

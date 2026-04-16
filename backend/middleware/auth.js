@@ -26,23 +26,24 @@ const protect = async (req, res, next) => {
         let [user] = await sql`SELECT * FROM users WHERE uid = ${decodedToken.uid}`;
 
         if (!user) {
-            // Create basic user profile from token info
+            // New user — insert basic profile. DB trigger auto-creates user_credits row (3 credits).
             const result = await sql`
-                INSERT INTO users (
-                    uid, email, display_name, photo_url, provider
-                ) VALUES (
-                    ${decodedToken.uid}, 
-                    ${decodedToken.email}, 
-                    ${decodedToken.name || ''}, 
-                    ${decodedToken.picture || ''}, 
+                INSERT INTO users (uid, email, display_name, photo_url, provider)
+                VALUES (
+                    ${decodedToken.uid},
+                    ${decodedToken.email},
+                    ${decodedToken.name || ''},
+                    ${decodedToken.picture || ''},
                     ${decodedToken.firebase.sign_in_provider || 'unknown'}
                 )
+                ON CONFLICT (uid) DO UPDATE SET last_login = NOW()
                 RETURNING *
             `;
             user = result[0];
         }
 
         // GRANT ACCESS TO PROTECTED ROUTE
+        console.log(`🔓 User Auth Success: ${user.email} (UUID: ${user.id}, UID: ${user.uid})`);
         req.user = user;
         req.firebaseUser = decodedToken;
         next();

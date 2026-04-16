@@ -9,11 +9,7 @@ const admin = require('firebase-admin');
  * @access  Private
  */
 exports.getProfile = catchAsync(async (req, res, next) => {
-    // req.user is already populated by auth protection
-    res.status(200).json({
-        success: true,
-        data: req.user
-    });
+    res.status(200).json({ success: true, data: req.user });
 });
 
 /**
@@ -27,10 +23,8 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
 
     const updates = {};
     if (displayName !== undefined) updates.display_name = displayName;
-
     if (preferences) {
-        // Merge existing JSONB preferences with new preferences
-        updates.preferences = { ...user.preferences, ...preferences };
+        updates.preferences = sql.json({ ...user.preferences, ...preferences });
     }
 
     if (Object.keys(updates).length > 0) {
@@ -42,9 +36,51 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
         if (updatedUser) Object.assign(user, updatedUser);
     }
 
+    res.status(200).json({ success: true, data: user });
+});
+
+/**
+ * @desc    Get AI preferences for current user
+ * @route   GET /api/users/preferences
+ * @access  Private
+ */
+exports.getPreferences = catchAsync(async (req, res, next) => {
+    const prefs = req.user.preferences || {};
     res.status(200).json({
         success: true,
-        data: user
+        data: {
+            defaultStyle: prefs.defaultStyle || 'Modern',
+            defaultIndustry: prefs.defaultIndustry || 'Technology',
+            aiPrefsEnabled: prefs.aiPrefsEnabled !== false,
+        }
+    });
+});
+
+/**
+ * @desc    Save AI preferences for current user
+ * @route   PATCH /api/users/preferences
+ * @access  Private
+ */
+exports.savePreferences = catchAsync(async (req, res, next) => {
+    const { defaultStyle, defaultIndustry, aiPrefsEnabled } = req.body;
+    const currentPrefs = req.user.preferences || {};
+
+    const updatedPrefs = {
+        ...currentPrefs,
+        ...(defaultStyle !== undefined ? { defaultStyle } : {}),
+        ...(defaultIndustry !== undefined ? { defaultIndustry } : {}),
+        ...(aiPrefsEnabled !== undefined ? { aiPrefsEnabled } : {}),
+    };
+
+    const [user] = await sql`
+        UPDATE users SET preferences = ${sql.json(updatedPrefs)}
+        WHERE id = ${req.user.id}
+        RETURNING preferences
+    `;
+
+    res.status(200).json({
+        success: true,
+        data: user?.preferences || updatedPrefs
     });
 });
 
@@ -56,21 +92,14 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
 exports.deleteAccount = catchAsync(async (req, res, next) => {
     const user = req.user;
 
-    // 1. Delete from Firebase Auth
     try {
         await admin.auth().deleteUser(user.uid);
     } catch (error) {
         console.error('Firebase user deletion failed:', error);
     }
 
-    // 2. Delete from PostgreSQL
-    // ON DELETE CASCADE automatically sweeps out their brands and logo_history
     await sql`DELETE FROM users WHERE id = ${user.id}`;
-
     console.log(`Successfully deleted user ${user.id} and all related data via CASCADE.`);
 
-    res.status(200).json({
-        success: true,
-        message: 'Account deleted successfully'
-    });
+    res.status(200).json({ success: true, message: 'Account deleted successfully' });
 });

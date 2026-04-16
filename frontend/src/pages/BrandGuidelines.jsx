@@ -17,6 +17,7 @@ export default function BrandGuidelines() {
 
   const passedProfile = location.state?.brandProfile || {};
   const passedLogoUrl = location.state?.logoUrl || null;
+  const passedLogoId = location.state?.logoId || null;
   const brandName = passedProfile.brandName || "Brand";
   const logoUrl = resolveUrl(passedLogoUrl);
 
@@ -26,32 +27,51 @@ export default function BrandGuidelines() {
 
   useEffect(() => {
     if (brandName && brandName !== "Brand") {
-      generateGuidelines();
+      loadGuidelines();
     }
   }, []);
+
+  const loadGuidelines = async () => {
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      // 1. Try to load cached guidelines from DB first (saved at generation time)
+      if (passedLogoId) {
+        try {
+          const cached = await api.get(`/brands/guidelines/${passedLogoId}`);
+          if (cached.data?.data?.guidelines) {
+            setGuidelines(cached.data.data.guidelines);
+            return; // ✅ Cached data found, no need to regenerate
+          }
+        } catch (_) {
+          // Not found or server error — fall through to fresh generation
+        }
+      }
+
+      // 2. Generate fresh guidelines via the stateless endpoint
+      await generateGuidelines();
+    } catch (err) {
+      setError("Could not load brand guidelines. Please try again.");
+      setIsGenerating(false);
+    }
+  };
 
   const generateGuidelines = async () => {
     setIsGenerating(true);
     setError(null);
     try {
-      // Use the stateless endpoint — no brand creation needed
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/brands/guidelines/generate`,
-        {
-          brandName: passedProfile.brandName,
-          industry: passedProfile.industry || "",
-          targetAudience: passedProfile.targetAudience || "",
-          personality: passedProfile.personality || "",
-          colors: passedProfile.colors || "",
-          logoUrl: passedLogoUrl || "",
-          aiPrompt: passedProfile.aiPrompt || "", // Added aiPrompt
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
+      // Use the api service (has auth token injected automatically)
+      const res = await api.post("/brands/guidelines/generate", {
+        brandName: passedProfile.brandName,
+        industry: passedProfile.industry || "",
+        targetAudience: passedProfile.targetAudience || "",
+        personality: passedProfile.personality || "",
+        colors: passedProfile.colors || "",
+        logoUrl: passedLogoUrl || "",
+        aiPrompt: passedProfile.aiPrompt || "",
+        logoId: passedLogoId || null,
+      });
       setGuidelines(res.data.data.guidelines);
     } catch (err) {
       console.error("Guidelines error:", err);
@@ -60,6 +80,7 @@ export default function BrandGuidelines() {
       setIsGenerating(false);
     }
   };
+
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "pt", "a4");
@@ -91,15 +112,14 @@ export default function BrandGuidelines() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
-      {/* Header */}
-      <header className="p-5 flex items-center gap-3 shadow-lg" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6)" }}>
-        <Link to="/"><img src="/brandybot_icon.png" className="h-10 w-10 rounded-full shadow ring-2 ring-white/30" alt="BrandyBot" /></Link>
+    <div className="flex flex-col h-full w-full relative">
+      {/* Contextual Top Bar */}
+      <div className="flex items-center justify-between px-6 py-4 md:pl-20 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] flex-shrink-0">
         <div>
-          <h1 className="text-xl font-bold text-white">Brand Guidelines</h1>
-          <p className="text-purple-200 text-xs">AI-Generated for {brandName}</p>
+          <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Brand Guidelines</h1>
+          <p className="text-sm text-[var(--text-muted)]">AI-Generated for {brandName}</p>
         </div>
-      </header>
+      </div>
 
       {/* Hero */}
       <div className="bg-white border-b border-gray-100 shadow-sm">
@@ -216,12 +236,12 @@ export default function BrandGuidelines() {
       </div>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-2xl">
+      <footer className="sticky bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] mt-auto z-10 w-full">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-2 justify-end">
-          <button onClick={handleDownloadPDF} disabled={!guidelines} className="px-4 py-2 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition disabled:opacity-40" style={{ background: "linear-gradient(90deg,#7C3AED,#3B82F6)" }}>
+          <button onClick={handleDownloadPDF} disabled={!guidelines} className="px-5 py-2 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition disabled:opacity-40" style={{ background: "linear-gradient(90deg,#7C3AED,#3B82F6)" }}>
             ⬇ Download PDF
           </button>
-          <Link to="/mockup_generator" state={{ logoUrl: passedLogoUrl, brandName }} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+          <Link to="/mockup_generator" state={{ logoUrl: passedLogoUrl, brandName }} className="px-5 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl text-sm font-semibold hover:bg-[var(--bg-card-hover)] transition">
             👕 Mockups
           </Link>
         </div>

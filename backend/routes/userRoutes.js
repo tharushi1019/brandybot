@@ -12,4 +12,8 @@ router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
 router.delete('/account', userController.deleteAccount);
 
+// AI Preferences
+router.get('/preferences', userController.getPreferences);
+router.patch('/preferences', userController.savePreferences);
+
 module.exports = router;

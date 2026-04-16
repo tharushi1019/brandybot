@@ -14,6 +14,9 @@ router.use(apiLimiter);
 
 // ⚠️ STATELESS guidelines endpoint — MUST be before /:id routes
 router.post('/guidelines/generate', brandController.generateGuidelinesStateless);
+// Get cached guidelines by logo ID (saved at logo generation time)
+router.get('/guidelines/:logoId', brandController.getGuidelinesByLogoId);
+
 
 router
     .route('/')

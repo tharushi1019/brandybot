@@ -27,6 +27,10 @@ class ChatResponse(BaseModel):
 class MockupRequest(BaseModel):
     logo_url: str
     template_type: str
+    brand_name: Optional[str] = "Brand"
+    primary_color: Optional[str] = "#7C3AED"
+    secondary_color: Optional[str] = "#3B82F6"
 
 class MockupResponse(BaseModel):
     url: str
+    template_type: str

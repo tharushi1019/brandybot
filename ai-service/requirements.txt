@@ -5,3 +5,5 @@ python-multipart==0.0.9
 requests==2.31.0
 pillow==10.2.0
 python-dotenv==1.0.1
+# Optional: background removal for logo compositing (install separately if needed)
+# rembg==2.0.56
