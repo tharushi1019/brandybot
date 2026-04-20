@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLogo } from '../context/LogoContext';
 import axios from 'axios';
 import BrandGuidelinesModal from '../components/BrandGuidelinesModal';
 import MockupModal from '../components/MockupModal';
@@ -34,31 +35,27 @@ const renderMarkdown = (text) => {
 };
 
 
-// ─── Microsoft Design-style 4-box loader ──────────────────────
-const MsLoaderBox = ({ delay }) => (
-  <div
-    className="w-full h-full rounded-xl"
-    style={{
-      background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(59,130,246,0.3))',
-      animation: `ms-box-pulse 1.6s ease-in-out ${delay}ms infinite`,
-    }}
-  />
-);
-
-const FourBoxLoader = () => (
+// ─── Dual variant loader ──────────────────────
+const TwoBoxLoader = () => (
   <div className="mt-3">
     <style>{`
-      @keyframes ms-box-pulse {
-        0%,100% { transform: scale(0.93); opacity: 0.35; }
-        50%      { transform: scale(1.04); opacity: 1; }
+      @keyframes box-pulse {
+        0%,100% { opacity: 0.35; transform: scale(0.95); }
+        50% { opacity: 1; transform: scale(1.02); }
       }
     `}</style>
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, maxWidth:240 }}>
-      {[0, 220, 440, 660].map(d => (
-        <div key={d} style={{ height:110 }}><MsLoaderBox delay={d} /></div>
+    <div className="flex gap-3" style={{ maxWidth: 240 }}>
+      {[0, 200].map(d => (
+        <div key={d} className="flex-1 aspect-square rounded-2xl" 
+             style={{ 
+               background: 'rgba(124,58,237,0.1)', 
+               border: '1px solid rgba(124,58,237,0.2)',
+               animation: `box-pulse 1.5s ease-in-out ${d}ms infinite`
+             }} 
+        />
       ))}
     </div>
-    <p className="text-xs mt-2" style={{ color:'var(--text-muted)' }}>Generating logo variants...</p>
+    <p className="text-[10px] uppercase tracking-widest mt-3 font-bold text-purple-400/60">Crafting Variants...</p>
   </div>
 );
 
@@ -115,7 +112,7 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
       <div style={{ display:'flex', alignItems:'center', gap:40, width:'100%', justifyContent:'center', padding:'0 40px' }}>
         <button onClick={() => setIdx(i => Math.max(0,i-1))} disabled={idx===0}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', border:'none', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===0?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===0?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
           ‹
         </button>
         
@@ -135,7 +132,7 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
 
         <button onClick={() => setIdx(i => Math.min(logos.length-1,i+1))} disabled={idx===logos.length-1}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', border:'none', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===logos.length-1?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===logos.length-1?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
           ›
         </button>
       </div>
@@ -146,76 +143,89 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
 const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onImageClick }) => {
   const isUser = msg.role === 'user';
   const logoCount = msg.logos?.length ?? 0;
+  
+  // Use first logo for quick actions if multiple exist
+  const primaryLogo = msg.logos?.[0] || msg.logo;
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-fade-in-up`}>
       {!isUser && (
-        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mr-3 brand-gradient text-white text-sm font-bold">
+        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mr-3 brand-gradient text-white text-sm font-bold shadow-lg shadow-purple-500/20">
           B
         </div>
       )}
-      <div style={{ maxWidth:'80%' }}>
-        {/* Bubble — hide empty content while isGenerating */}
+      <div style={{ maxWidth:'85%' }}>
+        {/* Bubble */}
         {(msg.content || !msg.isGenerating) && (
-          <div className={isUser ? 'chat-bubble-user' : 'chat-bubble-ai'}
+          <div className={isUser ? 'chat-bubble-user shadow-md' : 'chat-bubble-ai shadow-sm'}
                style={isUser ? { wordBreak:'break-word', overflowWrap:'anywhere' } : {}}>
             {isUser ? msg.content : renderMarkdown(msg.content)}
           </div>
         )}
 
-        {/* 4-box loader when generating */}
-        {msg.isGenerating && <FourBoxLoader />}
+        {/* 2-box loader when generating */}
+        {msg.isGenerating && <TwoBoxLoader />}
 
-        {/* 2x2 logo result grid — clickable for lightbox */}
+        {/* Logo result grid */}
         {logoCount > 0 && (
           <div className="mt-4">
-            <p className="text-xs font-semibold text-purple-400 mb-2">
-              ✨ {logoCount} logo variant{logoCount > 1 ? 's' : ''} generated — click to preview!
-            </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-4">
               {msg.logos.map((logo, i) => (
                 <div key={logo.id || i}
-                  className="glass-card rounded-2xl overflow-hidden hover:-translate-y-1.5 transition-all hover:shadow-2xl cursor-pointer group/card border border-white/5"
-                  style={{ width:'min(180px, 45%)' }}
+                  className="glass-card rounded-2xl overflow-hidden hover:-translate-y-1 transition-all hover:shadow-xl cursor-pointer group/card border border-white/10 bg-white"
+                  style={{ width:'min(200px, 45%)' }}
                   onClick={() => onImageClick(msg.logos, i)}
                 >
-                  <div className="relative p-4 flex items-center justify-center h-40 bg-white">
+                  <div className="relative p-4 flex items-center justify-center aspect-square">
                     <img src={logo.logo_url} alt={`Variant ${i+1}`}
-                      className="max-h-32 max-w-full object-contain pointer-events-none"
+                      className="max-h-full max-w-full object-contain pointer-events-none"
+                      crossOrigin="anonymous"
                       onError={e => { e.target.style.display='none'; }} />
                     <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/5 transition-colors flex items-center justify-center">
-                       <span className="opacity-0 group-hover/card:opacity-100 bg-white/90 text-black text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg transition-opacity uppercase tracking-wider">Preview</span>
+                       <span className="opacity-0 group-hover/card:opacity-100 bg-white/90 text-black text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg transition-opacity uppercase tracking-wider">Expand</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {/* Quick Actions for the chosen direction */}
+            <div className="flex gap-2 mt-4 flex-wrap">
+               <button onClick={() => onGuidelinesClick(primaryLogo)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition flex items-center gap-2">
+                📄 Guidelines
+              </button>
+              <button onClick={() => onMockupClick(primaryLogo)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-2">
+                ✨ Mockups
+              </button>
+              <button onClick={() => window.open(primaryLogo.logo_url, '_blank')}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition flex items-center gap-2">
+                🔗 New Tab
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Fallback: single logo (backward compat) */}
+        {/* Fallback backward compatibility */}
         {msg.logo && !msg.logos && (
-          <div className="mt-4 p-4 rounded-2xl glass-card max-w-sm">
-            <img src={msg.logo.logo_url} alt="Generated Logo" className="w-full rounded-xl mb-3 shadow-lg" />
-            <p className="text-sm text-[var(--text-secondary)] mb-3 font-medium">✨ Your logo is ready!</p>
+          <div className="mt-4 p-4 rounded-2xl glass-card max-w-sm bg-white">
+            <img src={msg.logo.logo_url} alt="Generated Logo" className="w-full rounded-xl mb-3" crossOrigin="anonymous" />
             <div className="flex gap-2 flex-wrap">
               <button onClick={() => onGuidelinesClick(msg.logo)}
-                className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl brand-gradient text-white hover:opacity-90 transition">
-                📋 Brand Guidelines
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-xl brand-gradient text-white">
+                📋 Guidelines
               </button>
               <button onClick={() => onMockupClick(msg.logo)}
-                className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition">
-                👕 Mock It Up
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-xl border border-white/10 bg-white/5">
+                👕 Mockups
               </button>
-              <a href={msg.logo.logo_url} download="logo.png"
-                className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl border border-[var(--border-color)] text-[var(--text-primary)] text-center hover:bg-[var(--bg-card-hover)] transition">
-                ⬇ Download
-              </a>
             </div>
           </div>
         )}
       </div>
       {isUser && (
-        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ml-3 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-bold">
+        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ml-3 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-bold shadow-sm">
           U
         </div>
       )}
@@ -253,6 +263,7 @@ const SessionItem = ({ session, isActive, onClick, onDelete }) => (
 const LogoAgent = () => {
   const { user, getAuthToken } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { setLogoData } = useLogo();
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -626,7 +637,6 @@ const LogoAgent = () => {
       {guidelinesModal.open && (
         <BrandGuidelinesModal
           logo={guidelinesModal.logo}
-          brandContext={brandContext}
           onClose={() => setGuidelinesModal({ open: false, logo: null })}
         />
       )}
@@ -642,7 +652,15 @@ const LogoAgent = () => {
           startIndex={lightbox.index}
           onClose={closeLightbox}
           onGuidelines={(logo) => setGuidelinesModal({ open: true, logo })}
-          onMockup={(logo) => setMockupModal({ open: true, logo })}
+          onMockup={(logo) => {
+            setLogoData({
+              logoUrl: logo.logo_url,
+              brandName: logo.brand_name || brandContext.name || "Brand",
+              primaryColors: [], // Could extract from logo if available
+              font: "Inter"
+            });
+            setMockupModal({ open: true, logo });
+          }}
         />
       )}
     </div>

@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useLogo } from "../context/LogoContext";
+import api from "../services/api";
 import JSZip from "jszip";
+
+// Lazy load 3D component to keep initial load light
+const ThreeDViewer = lazy(() => import("../components/ThreeDViewer"));
 
 // Template definitions — logo will be overlaid on these colored backgrounds
 const TEMPLATES = [
@@ -182,12 +187,23 @@ const generateMockupCanvas = (logoImg, template, brandName) => {
 
 export default function MockUpGenerator() {
   const location = useLocation();
-  const { logoUrl: passedLogoUrl, brandName: passedBrandName } = location.state || {};
+  const { logoData } = useLogo();
+  
+  // Priority 1: Navigation state, Priority 2: Global Context
+  const passedLogoUrl = location.state?.logoUrl || logoData?.logoUrl;
+  const passedBrandName = location.state?.brandName || logoData?.brandName;
 
   const [mockups, setMockups] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(false);
   const logoImgRef = useRef(null);
+
+  // --- 3D Studio State ---
+  const [viewMode, setViewMode] = useState("2D"); // "2D" or "3D"
+  const [productColor, setProductColor] = useState("#ffffff");
+  const [rotationSpeed, setRotationSpeed] = useState(1);
+  const [activeTemplate, setActiveTemplate] = useState("Coffee Mug");
+  // ------------------------
 
   const [transparentLogoUrl, setTransparentLogoUrl] = useState(null);
   const [isRemovingBg, setIsRemovingBg] = useState(!!passedLogoUrl);
@@ -196,10 +212,11 @@ export default function MockUpGenerator() {
   useEffect(() => {
     // If we have a logo URL, try to remove background first
     if (passedLogoUrl) {
+      setTransparentLogoUrl(null); // Reset before fetch to prevent stale logo flicker
       const fetchTransparentLogo = async () => {
         setIsRemovingBg(true);
         try {
-          // Use our new backend endpoint which returns a clean ImgBB URL
+          // Use our backend endpoint which returns a clean ImgBB URL
           const res = await api.post('/utils/remove-bg',
             { imageUrl: passedLogoUrl },
             { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
@@ -286,6 +303,24 @@ export default function MockUpGenerator() {
         )}
       </div>
 
+      {/* Mode Switcher Tab */}
+      <div className="flex justify-center mt-6 px-6">
+        <div className="bg-[var(--bg-secondary)] p-1 rounded-2xl border border-[var(--border-color)] flex gap-1 shadow-sm">
+          <button 
+            onClick={() => setViewMode("2D")}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === "2D" ? "bg-white text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+          >
+            🖼️ 2D Grid
+          </button>
+          <button 
+            onClick={() => setViewMode("3D")}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === "3D" ? "bg-white text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+          >
+            🧊 3D Studio
+          </button>
+        </div>
+      </div>
+
 
       {/* No logo passed */}
       {!passedLogoUrl && (
@@ -301,44 +336,134 @@ export default function MockUpGenerator() {
         </div>
       )}
 
-      {/* Loading states */}
+      {/* Content Area */}
       {passedLogoUrl && (
         <div className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 pb-28">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockups.map((mockup, i) => (
-              <div key={i} className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition group">
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-                  <span className="text-2xl">{mockup.emoji}</span>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{mockup.type}</h3>
-                    <p className="text-xs text-gray-500">{mockup.description}</p>
+          
+          {viewMode === "2D" ? (
+            /* 2D Grid View */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {mockups.map((mockup, i) => (
+                <div key={i} className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition group">
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                    <span className="text-2xl">{mockup.emoji}</span>
+                    <div>
+                      <h3 className="font-bold text-gray-900">{mockup.type}</h3>
+                      <p className="text-xs text-gray-500">{mockup.description}</p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner bg-gray-50 flex items-center justify-center">
+                      <img src={mockup.imageUrl} alt={mockup.type} className="w-full object-contain" style={{ maxHeight: "280px" }} />
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => handleDownloadSingle(mockup)}
+                        className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition"
+                        style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6)" }}
+                      >
+                        ⬇ Download
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner bg-gray-50 flex items-center justify-center">
-                    <img src={mockup.imageUrl} alt={mockup.type} className="w-full object-contain" style={{ maxHeight: "280px" }} />
+              ))}
+            </div>
+          ) : (
+            /* 3D Studio View */
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* 3D Viewer Area */}
+                <div className="flex-1">
+                  <Suspense fallback={<div className="h-[500px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-300">Loading 3D Engine...</div>}>
+                    <ThreeDViewer 
+                      templateType={activeTemplate} 
+                      logoUrl={transparentLogoUrl} 
+                      brandName={passedBrandName} 
+                      productColor={productColor}
+                      rotationSpeed={rotationSpeed}
+                    />
+                  </Suspense>
+                </div>
+
+                {/* 3D Controls Sidebar */}
+                <div className="w-full md:w-72 flex flex-col gap-4">
+                  <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100">
+                    <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
+                       🔧 Studio Controls
+                    </h3>
+                    
+                    {/* Template Selector */}
+                    <div className="mb-6">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Choose Product</label>
+                      <div className="flex flex-col gap-2">
+                        {TEMPLATES.filter(t => t.type !== "Instagram Post").map((t) => (
+                          <button 
+                            key={t.type}
+                            onClick={() => setActiveTemplate(t.type)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-sm font-bold ${activeTemplate === t.type ? "border-[#7C3AED] bg-purple-50 text-[#7C3AED]" : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"}`}
+                          >
+                            <span>{t.emoji}</span> {t.type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Color Picker */}
+                    <div className="mb-6">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Product Color</label>
+                      <div className="flex flex-wrap gap-2">
+                        {["#ffffff", "#1a1a1a", "#7C3AED", "#3B82F6", "#EF4444", "#10B981", "#F59E0B"].map((c) => (
+                          <button 
+                            key={c}
+                            onClick={() => setProductColor(c)}
+                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${productColor === c ? "border-gray-900 scale-110" : "border-transparent shadow-sm"}`}
+                            style={{ backgroundColor: c }}
+                            title={c}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Rotation Speed */}
+                    <div className="mb-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                        <span>Rotation Speed</span>
+                        <span className="text-[#3B82F6]">{rotationSpeed}x</span>
+                      </label>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="5" 
+                        step="0.5" 
+                        value={rotationSpeed} 
+                        onChange={(e) => setRotationSpeed(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#3B82F6]"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-bold">
+                         <span>Pause</span>
+                         <span>Fast</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={() => handleDownloadSingle(mockup)}
-                      className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition"
-                      style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6)" }}
-                    >
-                      ⬇ Download
-                    </button>
+
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-6 text-white shadow-xl">
+                    <p className="text-xs text-gray-400 mb-2">Live 3D rendering uses your GPU for high-fidelity previews. Interaction is fully touch & mouse enabled.</p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
           <div className="mt-8 text-center pb-20">
-            <button
-              onClick={handleDownloadAll}
-              className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition flex items-center justify-center gap-2 mx-auto"
-            >
-              📦 Download All Mockups (.ZIP)
-            </button>
+            {viewMode === "2D" && (
+              <button
+                onClick={handleDownloadAll}
+                className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition flex items-center justify-center gap-2 mx-auto"
+              >
+                📦 Download All Mockups (.ZIP)
+              </button>
+            )}
           </div>
         </div>
       )}

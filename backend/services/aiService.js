@@ -41,8 +41,7 @@ exports.generateLogoAI = async (payload) => {
 };
 
 /**
- * Generate 4 logo variants in parallel for a single brand.
- * Each variant uses a different visual style suffix.
+ * Generate exactly 2 logo variants for a single brand.
  * Returns an array of { url, metadata, variantStyle } objects.
  */
 exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
@@ -50,50 +49,57 @@ exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
     const industry  = brandCtx.industry || '';
     const colors    = brandCtx.colors || '';
 
-    const styleVariants = [
-        { style: 'geometric minimalist', suffix: 'clean geometric shapes, flat design, bold lines' },
-        { style: 'gradient modern',      suffix: 'smooth color gradient, futuristic, vibrant' },
-    ];
+    // We only need one combined prompt for the improved SDXL service which returns 2 images
+    const finalPrompt = [
+        basePrompt,
+        industry ? `${industry} industry` : null,
+        colors ? `colors: ${colors}` : null,
+        'vector logo, white background, professional, no text',
+    ].filter(Boolean).join(', ');
 
-    const generateOne = async (variant) => {
-        const prompt = [
-            basePrompt,
-            variant.suffix,
-            industry ? `${industry} industry` : null,
-            colors ? `colors: ${colors}` : null,
-            'vector logo, white background, professional, no text',
-        ].filter(Boolean).join(', ');
-
-        try {
-            // Try SDXL first, fall back to Gemini
-            if (config.aiService?.url) {
-                try {
-                    const r = await generateLogoViaSDXL(prompt, config.aiService.url);
-                    return { ...r, variantStyle: variant.style };
-                } catch (_) { /* fall through */ }
+    try {
+        // 1. Try SDXL first (returns 2 images in one go)
+        if (config.aiService?.url) {
+            try {
+                const results = await generateLogoViaSDXL(finalPrompt, config.aiService.url);
+                if (results && results.length >= 2) {
+                    return [
+                        { ...results[0], variantStyle: 'Variant 1' },
+                        { ...results[1], variantStyle: 'Variant 2' }
+                    ];
+                }
+            } catch (err) {
+                console.warn(`⚠️ SDXL service failed: ${err.message}`);
             }
-            const r = await generateLogoWithGemini(prompt, { brand_name: brandName });
-            return { ...r, variantStyle: variant.style };
-        } catch (err) {
-            console.warn(`⚠️ Variant "${variant.style}" failed: ${err.message}`);
-            return null;
         }
-    };
 
-    const results = await Promise.all(styleVariants.map(generateOne));
-    return results.filter(Boolean);
+        // 2. Fallback: Gemini (call twice to get 2 variants)
+        console.log('🔄 Falling back to Gemini for 2-variant generation...');
+        const [r1, r2] = await Promise.all([
+            generateLogoWithGemini(finalPrompt + ', style geometric minimalist', { brand_name: brandName }),
+            generateLogoWithGemini(finalPrompt + ', style gradient modern', { brand_name: brandName })
+        ]);
+
+        return [
+            { ...r1, variantStyle: 'Gemini Variant 1' },
+            { ...r2, variantStyle: 'Gemini Variant 2' }
+        ].filter(Boolean);
+
+    } catch (err) {
+        console.error('❌ Logo generation failed entirely:', err.message);
+        throw err;
+    }
 };
 
-
-
 /**
- * Primary: Generate logo via the ngrok-hosted SDXL FastAPI service
+ * Primary: Generate logos via the ngrok-hosted SDXL FastAPI service
+ * Now supports returning multiple images in one call.
  */
 async function generateLogoViaSDXL(prompt, serviceUrl) {
     const baseUrl = serviceUrl.replace(/\/$/, '');
     const aiEndpoint = `${baseUrl}/generate`;
 
-    console.log(`🚀 Calling SDXL Service: POST ${aiEndpoint}?prompt=...`);
+    console.log(`🚀 Calling SDXL Service: POST ${aiEndpoint}`);
     console.log(`📝 Prompt: ${prompt.substring(0, 120)}...`);
 
     const response = await axios.post(
@@ -101,25 +107,26 @@ async function generateLogoViaSDXL(prompt, serviceUrl) {
         null,
         {
             headers: { 'ngrok-skip-browser-warning': 'true' },
-            timeout: 120000, // 2 mins — SDXL generation takes time
+            timeout: 120000, 
         }
     );
 
-    const base64Data = response.data.image_base64;
-    if (!base64Data || base64Data.length < 100) {
-        throw new Error('Invalid response from SDXL Service: Missing or empty image_base64');
+    const imagesBase64 = response.data.images_base64 || (response.data.image_base64 ? [response.data.image_base64] : []);
+    
+    if (!imagesBase64.length) {
+        throw new Error('No images returned from SDXL Service');
     }
 
-    console.log(`✅ SDXL Logo generated! Size: ${Math.round(base64Data.length / 1024)}KB`);
+    console.log(`✅ SDXL generated ${imagesBase64.length} images!`);
 
-    return {
+    return imagesBase64.map((base64Data, idx) => ({
         url: `data:image/png;base64,${base64Data}`,
         metadata: {
             prompt,
             provider: 'sdxl-fastapi-ngrok',
-            endpoint: aiEndpoint,
+            variant_index: idx
         }
-    };
+    }));
 }
 
 /**

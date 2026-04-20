@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +15,7 @@ const TEMPLATES = [
 
 const MockupModal = ({ logo, onClose }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   // Map of template id → { url, loading, error }
   const [mockups, setMockups] = useState(() =>
     Object.fromEntries(TEMPLATES.map(t => [t.id, { url: null, loading: false, error: null }]))
@@ -44,10 +46,12 @@ const MockupModal = ({ logo, onClose }) => {
     }
   };
 
-  // Generate all templates in parallel on mount
+  // ONLY generate the currently selected template if it hasn't been generated yet
   useEffect(() => {
-    TEMPLATES.forEach(t => generateOne(t.id));
-  }, []);
+    if (logo?.logo_url && selected && !mockups[selected].url && !mockups[selected].loading) {
+      generateOne(selected);
+    }
+  }, [logo?.logo_url, selected]);
 
   const handleDownloadOne = () => {
     const url = mockups[selected]?.url;
@@ -102,6 +106,15 @@ const MockupModal = ({ logo, onClose }) => {
             <p className="text-sm text-purple-200 mt-0.5">{logo?.brand_name} · {completedCount}/{TEMPLATES.length} generated</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                navigate('/mockup_generator', { state: { logoUrl: logo?.logo_url, brandName: logo?.brand_name } });
+                onClose();
+              }}
+              className="px-3 py-2 text-xs font-semibold rounded-xl bg-purple-500 text-white hover:bg-purple-600 transition flex items-center gap-1.5 shadow-lg"
+            >
+              🧊 Open in 3D Studio
+            </button>
             <button
               onClick={handleDownloadAll}
               disabled={completedCount === 0 || zipLoading}
@@ -180,6 +193,12 @@ const MockupModal = ({ logo, onClose }) => {
         {/* Footer */}
         {current.url && (
           <div className="p-4 border-t border-[var(--border-color)] flex justify-end gap-3 flex-shrink-0">
+            <button
+              onClick={() => window.open(current.url, '_blank')}
+              className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-white/60 font-semibold text-sm hover:bg-white/10 transition"
+            >
+              🔗 Open in New Tab
+            </button>
             <button
               onClick={handleDownloadOne}
               className="px-5 py-2 rounded-xl brand-gradient text-white font-semibold text-sm hover:opacity-90 transition"

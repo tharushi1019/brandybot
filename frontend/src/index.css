@@ -341,3 +341,43 @@ body {
     max-width: 900px;
     box-shadow: 0 25px 50px var(--shadow-color);
 }
+
+/* ============================================================
+   LOGO GENERATION LOADER (2 BOXES)
+   ============================================================ */
+.two-box-loader {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.loader-box {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--bg-card-hover), var(--bg-card));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.loader-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.5s infinite;
+}
+
+.loader-box:nth-child(2)::after {
+    animation-delay: 0.3s;
+}
+
+/* 2-Column Logo Grid */
+.logo-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+}

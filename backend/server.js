@@ -93,21 +93,34 @@ if (process.env.NODE_ENV !== 'test') {
         try {
             const axios = require('axios');
             const baseUrl = aiServiceUrl.replace(/\/$/, '');
-            // Real test: send an actual generation request and check for image_base64
+
+            // Step 1: Lightweight Ping (GET /) to check if server is ALIVE
+            console.log("📡 Step 1: Pinging AI Service...");
+            await axios.get(baseUrl, {
+                headers: { 'ngrok-skip-browser-warning': 'true' },
+                timeout: 5000
+            });
+            console.log("✅ AI Service is Reachable.");
+
+            // Step 2: Deep Check (POST /generate) to verify model is LOADED
+            console.log("🎨 Step 2: Testing Model Generation (this may take up to 60s)...");
             const res = await axios.post(
                 `${baseUrl}/generate?prompt=test+logo`,
                 null,
                 {
                     headers: { 'ngrok-skip-browser-warning': 'true' },
-                    timeout: 30000, // 30 seconds for test generation
+                    timeout: 60000, // Increased to 60 seconds
                 }
             );
-            if (res.data?.image_base64 && res.data.image_base64.length > 100) {
-                console.log("✅ Logo Generation Service: FULLY OPERATIONAL");
+
+            const imagesBase64 = res.data?.images_base64 || (res.data?.image_base64 ? [res.data.image_base64] : []);
+
+            if (imagesBase64.length > 0 && imagesBase64[0].length > 100) {
+                console.log(`✅ Logo Generation Service: FULLY OPERATIONAL (${imagesBase64.length} variants)`);
                 console.log("---------------------------------------------\n");
                 return true;
             } else {
-                throw new Error('Response missing image_base64 — model may not be loaded');
+                throw new Error('Response missing image data — model may not be loaded');
             }
         } catch (error) {
             const detail = error.response
