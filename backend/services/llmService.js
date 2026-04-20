@@ -1,12 +1,15 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const OpenAI = require("openai"); // Used for Groq (OpenAI-compatible)
+const OpenAI = require("openai");
 require("dotenv").config();
 
 let geminiMainModel = null;
 let geminiGuidelinesModel = null;
 let geminiMockupModel = null;
 let geminiImageModel = null;
+
+let openaiClient = null;
 let groqClient = null;
+let openRouterClient = null;
 
 // ============================================================
 // SYSTEM INSTRUCTIONS
@@ -83,7 +86,6 @@ const mainKey       = process.env.GEMINI_MAIN_KEY || process.env.GEMINI_API_KEY;
 const guidelinesKey = process.env.GEMINI_GUIDELINES_KEY || mainKey;
 const mockupKey     = process.env.GEMINI_MOCKUP_KEY || mainKey;
 
-// Gemini Instances
 geminiMainModel       = initGemini(mainKey);
 geminiGuidelinesModel = initGemini(guidelinesKey);
 geminiMockupModel     = initGemini(mockupKey, "gemini-2.5-flash-image");
@@ -94,7 +96,17 @@ if (geminiImageModel) console.log("✅ Gemini Image Model Initialized (2.5-flash
 if (guidelinesKey !== mainKey) console.log("✅ Gemini Guidelines Key Initialized");
 if (mockupKey !== mainKey) console.log("✅ Gemini Mockup Key Initialized");
 
-// Groq fallback (OpenAI-compatible)
+if (process.env.OPENAI_API_KEY) {
+    try {
+        openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        console.log("✅ OpenAI Initialized");
+    } catch (error) {
+        console.error("❌ Failed to initialize OpenAI:", error.message);
+    }
+} else {
+    console.log("⚠️ OPENAI_API_KEY not found in environment.");
+}
+
 if (process.env.GROQ_API_KEY) {
     try {
         groqClient = new OpenAI({ 
@@ -107,6 +119,24 @@ if (process.env.GROQ_API_KEY) {
     }
 } else {
     console.log("⚠️ GROQ_API_KEY not found in environment.");
+}
+
+if (process.env.OPENROUTER_API_KEY) {
+    try {
+        openRouterClient = new OpenAI({ 
+            baseURL: "https://openrouter.ai/api/v1", 
+            apiKey: process.env.OPENROUTER_API_KEY,
+            defaultHeaders: {
+                "HTTP-Referer": "http://localhost:5173", // Optional, for OpenRouter rankings
+                "X-Title": "BrandyBot", // Optional, for OpenRouter rankings
+            }
+        });
+        console.log("✅ OpenRouter Initialized");
+    } catch (error) {
+        console.error("❌ Failed to initialize OpenRouter:", error.message);
+    }
+} else {
+    console.log("⚠️ OPENROUTER_API_KEY not found in environment.");
 }
 
 // ============================================================
@@ -124,19 +154,6 @@ const testAPIsOnStartup = async () => {
             if (!activeApi) activeApi = "Gemini";
         } catch (e) {
             console.error("❌ Gemini Main API check: FAILED ->", e.message);
-            // Fallback: If Main key fails but Guidelines key exists/works, swap it
-            if (guidelinesKey && guidelinesKey !== mainKey) {
-                 console.log("🔄 Attempting to use Guidelines Key as fallback for Main Agent...");
-                 const fallbackModel = initGemini(guidelinesKey);
-                 try {
-                     await fallbackModel.generateContent("Hello!");
-                     geminiMainModel = fallbackModel;
-                     console.log("✅ Gemini Main Agent restored using Guidelines Key fallback.");
-                     if (!activeApi) activeApi = "Gemini (Fallback Key)";
-                 } catch (err) {
-                     console.error("❌ Gemini Fallback check also FAILED.");
-                 }
-            }
         }
     }
 
@@ -164,6 +181,33 @@ const testAPIsOnStartup = async () => {
         }
     }
 
+    if (openRouterClient) {
+        try {
+            console.log("⏳ Testing OpenRouter API...");
+            await openRouterClient.chat.completions.create({
+                messages: [{ role: "user", content: "Hello!" }],
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+            });
+            console.log("✅ OpenRouter API check: SUCCESS");
+            if (!activeApi) activeApi = "OpenRouter";
+        } catch (e) {
+            console.error("❌ OpenRouter API check: FAILED ->", e.message);
+        }
+    }
+
+    if (openaiClient) {
+        try {
+            console.log("⏳ Testing OpenAI API...");
+            await openaiClient.chat.completions.create({
+                messages: [{ role: "user", content: "Hello!" }],
+                model: "gpt-3.5-turbo",
+            });
+            console.log("✅ OpenAI API check: SUCCESS");
+            if (!activeApi) activeApi = "OpenAI";
+        } catch (e) {
+            console.error("❌ OpenAI API check: FAILED ->", e.message);
+        }
+    }
     console.log("----------------------------------\n");
     return activeApi || "None (All APIs Failed)";
 };
@@ -172,12 +216,14 @@ const testAPIsOnStartup = async () => {
 // GENERAL CHAT RESPONSE
 // ============================================================
 const generateResponse = async (prompt, history = []) => {
+    // Build OpenAI-format messages array with history
     const historyMessages = Array.isArray(history)
         ? history.map(m => ({ role: m.role === 'bot' ? 'assistant' : m.role, content: m.content }))
         : [];
 
     if (geminiMainModel) {
         try {
+            // Format history as a conversation transcript for Gemini
             const historyText = historyMessages.length > 0
                 ? historyMessages.map(m => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n') + '\n'
                 : '';
@@ -189,13 +235,15 @@ const generateResponse = async (prompt, history = []) => {
         }
     }
 
+    // Build messages array for OpenAI-compatible APIs
+    const messages = [
+        { role: "system", content: BRANDING_SYSTEM_INSTRUCTION },
+        ...historyMessages,
+        { role: "user", content: prompt }
+    ];
+
     if (groqClient) {
         try {
-            const messages = [
-                { role: "system", content: BRANDING_SYSTEM_INSTRUCTION },
-                ...historyMessages,
-                { role: "user", content: prompt }
-            ];
             const completion = await groqClient.chat.completions.create({
                 messages,
                 model: "llama-3.3-70b-versatile",
@@ -206,11 +254,35 @@ const generateResponse = async (prompt, history = []) => {
         }
     }
 
+    if (openRouterClient) {
+        try {
+            const completion = await openRouterClient.chat.completions.create({
+                messages,
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+            });
+            return completion.choices[0].message.content;
+        } catch (error) {
+            console.error("OpenRouter Error in generateResponse:", error.message);
+        }
+    }
+
+    if (openaiClient) {
+        try {
+            const completion = await openaiClient.chat.completions.create({
+                messages,
+                model: "gpt-3.5-turbo",
+            });
+            return completion.choices[0].message.content;
+        } catch (error) {
+            console.error("OpenAI Error in generateResponse:", error.message);
+        }
+    }
+
     return "I'm having a little trouble thinking right now 🤔 — but I'm here to help! Try asking me about logo generation, brand guidelines, or mockups.";
 };
 
 // ============================================================
-// STABLE DIFFUSION PROMPT ENGINEERING
+// 50-LINE STABLE DIFFUSION PROMPT ENGINEERING  (F01)
 // ============================================================
 const generateImagePrompt = async (brandProfile) => {
     const isString = typeof brandProfile === 'string';
@@ -229,10 +301,34 @@ Additional Description: ${brandProfile.description || ''}
 You are an elite Prompt Engineer for Stable Diffusion image generation, specializing in professional logo design.
 Convert a brand profile into a HIGHLY DETAILED, OPTIMIZED 50-line image generation prompt that produces a PERFECT professional logo.
 
+**Critical Requirements for the positive prompt (sd_prompt):**
+- Must be 50 lines / entries long (comma-separated descriptors, one concept per line)
+- Cover ALL of the following dimensions:
+  1. Logo symbol / icon description (what the visual element is)
+  2. Shape and geometry (circles, triangles, organic curves, etc.)
+  3. Style descriptor (flat vector, minimalist, geometric, illustrative, etc.)
+  4. Color palette (use specific hex values: primary, secondary, accent)
+  5. Color mood and temperature (warm, cool, vibrant, muted)
+  6. Line weight and stroke style (thick, hairline, bold, no outline)
+  7. Composition (centered, asymmetric, contained in circle/shield/badge)
+  8. Negative space usage (clever use of negative space)
+  9. Typography hint (if any — usually "no text" for logos)
+  10. Background (always: white background)
+  11. Print readiness descriptors (scalable, vector quality, crisp edges)
+  12. Lighting and shadow (flat, subtle shadow, no shadow)
+  13. Industry visual language (what visual conventions for this industry)
+  14. Target audience appeal (professional, youthful, luxurious, friendly)
+  15. Brand personality embodiment (bold, elegant, playful, trustworthy)
+  16. Technical quality modifiers (high resolution, clean lines, professional)
+  17. Exclusion hints in positive (simple, uncluttered, iconic)
+
+**Negative prompt requirements:**
+- Comprehensive list covering: realistic photo, human faces, body parts, text, letters, words, numbers, signatures, watermarks, copyright, blur, noise, grain, low quality, JPEG artifacts, complex backgrounds, gradients backgrounds, multiple logos, collage, busy composition, 3D render, photorealism, stock photo, clip art style, amateur, childish (unless brand calls for it), pixelated, distorted
+
 **Output:** STRICT JSON with these fields:
 {
-  "sd_prompt": "50 comma-separated descriptors covering icons, style, colors, composition, and technical quality",
-  "negative_prompt": "comprehensive exclusion list (text, faces, blurry, etc.)",
+  "sd_prompt": "50 comma-separated descriptors covering all dimensions above",
+  "negative_prompt": "comprehensive exclusion list",
   "summary": "1-sentence friendly confirmation to user",
   "suggestedColors": {
     "primary": "#HEXCODE",
@@ -240,8 +336,9 @@ Convert a brand profile into a HIGHLY DETAILED, OPTIMIZED 50-line image generati
     "accent": "#HEXCODE"
   }
 }
+
 RETURN ONLY THE JSON. NO MARKDOWN. NO EXTRA TEXT.
-`.trim();
+    `.trim();
 
     const fullPrompt = `${PROMPT_ENGINEER_INSTRUCTION}\n\nBrand Profile:\n${userContext}`;
 
@@ -256,13 +353,15 @@ RETURN ONLY THE JSON. NO MARKDOWN. NO EXTRA TEXT.
         }
     }
 
+    const messages = [
+        { role: "system", content: PROMPT_ENGINEER_INSTRUCTION },
+        { role: "user", content: `Brand Profile:\n${userContext}` }
+    ];
+
     if (groqClient) {
         try {
             const completion = await groqClient.chat.completions.create({
-                messages: [
-                    { role: "system", content: PROMPT_ENGINEER_INSTRUCTION },
-                    { role: "user", content: fullPrompt }
-                ],
+                messages,
                 model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
@@ -272,28 +371,112 @@ RETURN ONLY THE JSON. NO MARKDOWN. NO EXTRA TEXT.
         }
     }
 
+    if (openRouterClient) {
+        try {
+            const completion = await openRouterClient.chat.completions.create({
+                messages,
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+            });
+            const text = completion.choices[0].message.content;
+            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            return JSON.parse(jsonText);
+        } catch (error) {
+            console.error("OpenRouter Error generating prompt:", error.message);
+        }
+    }
+
+    if (openaiClient) {
+        try {
+            const completion = await openaiClient.chat.completions.create({
+                messages,
+                model: "gpt-3.5-turbo",
+                response_format: { type: "json_object" }
+            });
+            return JSON.parse(completion.choices[0].message.content);
+        } catch (error) {
+            console.error("OpenAI Error generating prompt:", error.message);
+        }
+    }
+
+    console.error("Prompt Generation Error: All AI providers failed or none configured.");
     return {
-        sd_prompt: "minimalist professional vector logo, clean geometry, white background, high resolution",
-        negative_prompt: "text, letters, words, watermark, blurry, photo",
+        sd_prompt: [
+            "minimalist professional vector logo",
+            "clean geometric symbol",
+            "flat design",
+            "white background",
+            "crisp edges",
+            "scalable vector quality",
+            "simple iconic mark",
+            "bold primary color",
+            "complementary accent color",
+            "centered composition",
+            "no text",
+            "no letters",
+            "no watermark",
+            "professional business branding",
+            "elegant negative space",
+            "print ready",
+            "high resolution",
+            "sharp lines",
+            "balanced proportions",
+            "timeless design"
+        ].join(", "),
+        negative_prompt: "text, letters, words, watermark, signature, blurry, low quality, realistic photo, human, people, busy background, gradient background, 3d render, complex details, noise, jpeg artifacts",
         summary: "Generating a clean professional logo for you!",
         suggestedColors: { primary: "#7C3AED", secondary: "#3B82F6", accent: "#F59E0B" }
     };
 };
 
 // ============================================================
-// BRAND GUIDELINES GENERATOR
+// BRAND GUIDELINES GENERATOR  (F03 upgrade)
 // ============================================================
 const generateBrandGuidelines = async (brandData) => {
     const GUIDELINES_INSTRUCTION = `
 You are an expert Brand Strategist and Creative Director.
-Generate comprehensive brand guidelines for the provided brand profile in STRICT JSON format.
-`.trim();
+Generate comprehensive brand guidelines for the provided brand profile.
+IMPORTANT: A logo was already generated for this brand. Your color palette, typography, and vibe MUST exactly match the visual described in the AI Logo Prompt and logo colors provided.
+
+Return a STRICT JSON:
+{
+  "logoUsage": ["rule 1", "rule 2", "rule 3", "rule 4"],
+  "colorPalette": {
+    "primary":   { "hex": "#XXXXXX", "name": "color name", "usage": "usage description" },
+    "secondary": { "hex": "#XXXXXX", "name": "color name", "usage": "usage description" },
+    "accent":    { "hex": "#XXXXXX", "name": "color name", "usage": "usage description" }
+  },
+  "typography": {
+    "primaryFont": "font name",
+    "secondaryFont": "font name",
+    "headingWeight": "700",
+    "bodyWeight": "400",
+    "rationale": "Why these fonts suit the brand"
+  },
+  "brandVoice": {
+    "tone": ["adjective 1", "adjective 2", "adjective 3"],
+    "guidelines": ["voice rule 1", "voice rule 2", "voice rule 3"],
+    "examplePhrase": "An example tagline or message in brand voice"
+  },
+  "dosAndDonts": {
+    "dos": ["do 1", "do 2", "do 3"],
+    "donts": ["dont 1", "dont 2", "dont 3"]
+  },
+  "imagery": ["imagery style rule 1", "imagery style rule 2", "imagery style rule 3"]
+}
+RETURN ONLY THE JSON. NO MARKDOWN.
+    `.trim();
 
     const brandContext = `
 Brand Name: ${brandData.brandName}
 Industry: ${brandData.industry || 'General'}
-Logo Colors: Primary=${brandData.logoColors?.primary || 'N/A'} Secondary=${brandData.logoColors?.secondary || 'N/A'} Accent=${brandData.logoColors?.accent || 'N/A'}
-`.trim();
+Target Audience: ${brandData.targetAudience || 'General public'}
+Brand Personality: ${brandData.personality || 'Professional'}
+Preferred Colors: ${brandData.colors || 'Not specified'}
+Actual Logo Colors (from DB): Primary=${brandData.logoColors?.primary || 'N/A'} Secondary=${brandData.logoColors?.secondary || 'N/A'} Accent=${brandData.logoColors?.accent || 'N/A'}
+Logo Style Used: ${brandData.logoStyle || 'Modern'}
+AI Logo Prompt Used: ${brandData.aiPrompt || 'None provided'}
+Logo Font (from DB): ${brandData.logoFont || 'Not specified'}
+    `.trim();
 
     if (geminiGuidelinesModel) {
         try {
@@ -306,13 +489,15 @@ Logo Colors: Primary=${brandData.logoColors?.primary || 'N/A'} Secondary=${brand
         }
     }
 
+    const messages = [
+        { role: "system", content: GUIDELINES_INSTRUCTION },
+        { role: "user", content: `Brand Profile:\n${brandContext}` }
+    ];
+
     if (groqClient) {
         try {
             const completion = await groqClient.chat.completions.create({
-                messages: [
-                    { role: "system", content: GUIDELINES_INSTRUCTION },
-                    { role: "user", content: brandContext }
-                ],
+                messages,
                 model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
@@ -322,18 +507,68 @@ Logo Colors: Primary=${brandData.logoColors?.primary || 'N/A'} Secondary=${brand
         }
     }
 
-    return { error: "Guidelines generation failed" };
+    if (openRouterClient) {
+        try {
+            const completion = await openRouterClient.chat.completions.create({
+                messages,
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+            });
+            const text = completion.choices[0].message.content;
+            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            return JSON.parse(jsonText);
+        } catch (error) {
+            console.error("OpenRouter Error generating guidelines:", error.message);
+        }
+    }
+
+    if (openaiClient) {
+        try {
+            const completion = await openaiClient.chat.completions.create({
+                messages,
+                model: "gpt-3.5-turbo",
+                response_format: { type: "json_object" }
+            });
+            return JSON.parse(completion.choices[0].message.content);
+        } catch (error) {
+            console.error("OpenAI Error generating guidelines:", error.message);
+        }
+    }
+
+    console.error("Brand Guidelines Generation Error: All AI providers failed.");
+    // Graceful fallback
+    return {
+        logoUsage: ["Use the logo on white or light backgrounds.", "Maintain clear space around the logo.", "Never stretch or rotate the logo.", "Use only approved color variations."],
+        colorPalette: {
+            primary:   { hex: brandData.logoColors?.primary || "#7C3AED", name: "Brand Purple", usage: "Primary brand color for headers and CTAs" },
+            secondary: { hex: brandData.logoColors?.secondary || "#3B82F6", name: "Brand Blue", usage: "Secondary elements and links" },
+            accent:    { hex: brandData.logoColors?.accent || "#F59E0B", name: "Brand Amber", usage: "Highlights, badges and call-to-action" }
+        },
+        typography: { primaryFont: brandData.logoFont?.primary || "Inter", secondaryFont: "Helvetica", headingWeight: "700", bodyWeight: "400", rationale: "Clean, modern readability across all media." },
+        brandVoice: { tone: ["Professional", "Friendly", "Creative"], guidelines: ["Speak directly to your audience.", "Use simple, clear language.", "Be encouraging and positive."], examplePhrase: "Building brands that matter." },
+        dosAndDonts: { dos: ["Use consistent colors.", "Keep layouts clean.", "Use the brand voice consistently."], donts: ["Don't stretch the logo.", "Don't use low-contrast text.", "Don't use off-brand fonts."] },
+        imagery: ["Use clean, minimal imagery.", "Prefer flat illustrations over photography.", "Ensure all imagery aligns with the brand color palette."]
+    };
 };
 
 // ============================================================
-// LOGO AGENT CONVERSATIONAL REPLY
+// LOGO AGENT CONVERSATIONAL REPLY  (F08)
 // ============================================================
 const generateLogoAgentReply = async ({ message, history = [], brandContext = {} }) => {
-    const fullInstruction = `${LOGO_AGENT_SYSTEM_INSTRUCTION}\nKnown brand context: ${JSON.stringify(brandContext)}`;
+    const contextSummary = Object.keys(brandContext).length > 0
+        ? `\n\nCurrent known brand context: ${JSON.stringify(brandContext)}`
+        : '';
+
+    const fullInstruction = `${LOGO_AGENT_SYSTEM_INSTRUCTION}${contextSummary}`;
+    const userMessage = message;
 
     if (geminiMainModel) {
         try {
-            const combinedPrompt = `${fullInstruction}\n\nChat History:\n${history.map(h => `${h.role}: ${h.parts ? h.parts[0].text : h.content}`).join('\n')}\n\nUser: ${message}\nAssistant:`;
+            let formattedHistory = [];
+            if (history.length > 0) {
+                 formattedHistory = history.length > 1 ? history.slice(0, -1) : [];
+            }
+            const combinedPrompt = `${fullInstruction}\n\nChat History:\n${formattedHistory.map(h => `${h.role}: ${h.parts ? h.parts[0].text : h.content}`).join('\n')}\n\nUser: ${userMessage}\nAssistant:`;
+            
             const result = await geminiMainModel.generateContent(combinedPrompt);
             let text = result.response.text().replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
             return JSON.parse(text);
@@ -342,14 +577,19 @@ const generateLogoAgentReply = async ({ message, history = [], brandContext = {}
         }
     }
 
+    const messages = [
+        { role: "system", content: fullInstruction },
+        ...history.map(h => ({
+            role: h.parts ? (h.role === 'model' ? 'assistant' : 'user') : h.role,
+            content: h.parts ? h.parts[0].text : h.content
+        })),
+        { role: "user", content: userMessage }
+    ];
+
     if (groqClient) {
         try {
             const completion = await groqClient.chat.completions.create({
-                messages: [
-                    { role: "system", content: fullInstruction },
-                    ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts ? h.parts[0].text : h.content })),
-                    { role: "user", content: message }
-                ],
+                messages,
                 model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
@@ -359,8 +599,36 @@ const generateLogoAgentReply = async ({ message, history = [], brandContext = {}
         }
     }
 
-    return { 
-        reply: "I'm having trouble connecting to my AI brain. Can we continue in a moment?",
+    if (openRouterClient) {
+        try {
+            const completion = await openRouterClient.chat.completions.create({
+                messages,
+                model: "meta-llama/llama-3.3-70b-instruct:free",
+            });
+            const text = completion.choices[0].message.content;
+            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            return JSON.parse(jsonText);
+        } catch (error) {
+            console.error("OpenRouter Error generating Logo Agent Reply:", error.message);
+        }
+    }
+
+    if (openaiClient) {
+        try {
+            const completion = await openaiClient.chat.completions.create({
+                messages,
+                model: "gpt-3.5-turbo",
+                response_format: { type: "json_object" }
+            });
+            return JSON.parse(completion.choices[0].message.content);
+        } catch (error) {
+            console.error("OpenAI Error generating Logo Agent Reply:", error.message);
+        }
+    }
+
+    console.error("Logo Agent Reply Error: All AI providers failed.");
+    return {
+        reply: "I'm having a bit of trouble connecting to the AI brain right now 😟 Could you tell me more about your brand in the meantime?",
         updatedBrandContext: brandContext,
         shouldGenerate: false
     };
