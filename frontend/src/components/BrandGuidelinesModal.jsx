@@ -322,9 +322,11 @@ async function buildPDF(guidelines, logo, brandContext, isDark) {
 }
 
 /* ── Main Component ────────────────────────────────────────────── */
-const BrandGuidelinesModal = ({ logo, brandContext = {}, onClose }) => {
+const BrandGuidelinesModal = ({ logo, onClose }) => {
   const { user } = useAuth();
   const { isDark } = useTheme();
+  // We prioritize the logo object's metadata for state isolation
+  const brandName = logo?.brand_name || 'Brand'; 
   const [guidelines, setGuidelines] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -345,11 +347,9 @@ const BrandGuidelinesModal = ({ logo, brandContext = {}, onClose }) => {
         } catch (_) { /* fall through */ }
       }
       const res = await axios.post(`${API}/brands/guidelines/generate`, {
-        brandName: brandContext.brandName || logo?.brand_name || 'My Brand',
-        industry: brandContext.industry || '',
-        targetAudience: brandContext.targetAudience || '',
-        personality: brandContext.personality || '',
-        colors: brandContext.colors || '',
+        brandName: logo?.brand_name || 'My Brand',
+        industry: logo?.industry || '',
+        colors: logo?.colors?.primary || '',
         logoId: logo?.id || null,
         aiPrompt: logo?.prompt || '',
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -376,7 +376,7 @@ const BrandGuidelinesModal = ({ logo, brandContext = {}, onClose }) => {
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-color)] brand-gradient flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold text-white">Brand Guidelines</h2>
-            <p className="text-sm text-purple-200 mt-0.5">{brandContext.brandName || logo?.brand_name}</p>
+            <p className="text-sm text-purple-200 mt-0.5">{brandName}</p>
           </div>
           <div className="flex gap-2">
             <button onClick={downloadPDF} disabled={!guidelines || pdfLoading}

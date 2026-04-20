@@ -14,3 +14,4 @@ backend/tests
 ai-service/.env
 Table_Structure.txt
 docs/implementation_plan.md
+nb_code.txt

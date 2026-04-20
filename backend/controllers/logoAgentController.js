@@ -103,18 +103,18 @@ exports.sendAgentMessage = catchAsync(async (req, res, next) => {
             console.warn('Prompt enrichment failed:', e.message);
         }
 
-        // Create 4 placeholder logo_history entries (one per variant)
+        // Create 2 placeholder logo_history entries (one per variant)
         const { generateLogoVariants } = require('../services/aiService');
         const groupId = require('crypto').randomUUID();
 
-        const variants = ['geometric minimalist', 'gradient modern'];
+        const variants = ['Variant 1', 'Variant 2'];
         const logoEntries = await Promise.all(variants.map(style =>
             sql`INSERT INTO logo_history (user_id, brand_name, prompt, industry, style, status, logo_url, generation_group_id)
                 VALUES (${req.user.id}, ${ctx.brandName || 'Brand'}, ${basePrompt}, ${ctx.industry || ''}, ${style}, 'processing', 'processing...', ${groupId})
                 RETURNING *`.then(rows => rows[0])
         ));
 
-        // Generate all 4 variants in parallel
+        // Generate exactly 2 variants
         try {
             const aiResults = await generateLogoVariants(basePrompt, ctx);
             const axios = require('axios');

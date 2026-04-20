@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLogo } from "../context/LogoContext";
 import { getLogoHistory } from "../services/logoService";
 import BrandGuidelinesModal from "../components/BrandGuidelinesModal";
 import MockupModal from "../components/MockupModal";
@@ -14,6 +15,7 @@ const resolveUrl = (url) => {
 
 export default function LogoHistory() {
     const { user } = useAuth();
+    const { setLogoData } = useLogo();
     const [logos, setLogos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -143,7 +145,16 @@ export default function LogoHistory() {
                                                 </button>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <button
-                                                        onClick={() => setMockupModal({ open: true, logo: { ...logo, logo_url: imgUrl } })}
+                                                        onClick={() => {
+                                                            const logoToSync = { ...logo, logo_url: imgUrl };
+                                                            setLogoData({
+                                                                logoUrl: imgUrl,
+                                                                brandName: logo.brand_name || "Brand",
+                                                                primaryColors: [],
+                                                                font: "Inter"
+                                                            });
+                                                            setMockupModal({ open: true, logo: logoToSync });
+                                                        }}
                                                         className="py-2 rounded-xl text-xs font-semibold text-white text-center transition hover:opacity-90"
                                                         style={{ background: 'linear-gradient(90deg,#3B82F6,#06b6d4)' }}>
                                                         👕 Mockups
