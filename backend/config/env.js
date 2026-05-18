@@ -63,7 +63,8 @@ const getConfig = () => {
         },
         aiService: {
             url: process.env.AI_SERVICE_URL || 'http://localhost:8000',
-            pollinationsKey: process.env.POLLINATIONS_API_KEY
+            pollinationsKey: process.env.POLLINATIONS_API_KEY,
+            replicateToken: process.env.REPLICATE_API_TOKEN
         },
         rateLimit: {
             windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes

@@ -23,17 +23,18 @@ exports.generateLogoAI = async (payload) => {
     ].filter(Boolean);
     const finalPrompt = parts.join(', ');
 
-    // --- Try primary ngrok SDXL model first ---
-    if (config.aiService?.url) {
+    // --- Try primary Replicate model first ---
+    const token = config.aiService?.replicateToken || process.env.REPLICATE_API_TOKEN;
+    if (token) {
         try {
-            const result = await generateLogoViaSDXL(finalPrompt, config.aiService.url);
+            const result = await generateLogoViaReplicate(finalPrompt, 1);
             return result;
-        } catch (sdxlError) {
-            console.warn(`⚠️  SDXL service failed: ${sdxlError.message}`);
+        } catch (replicateError) {
+            console.warn(`⚠️  Replicate service failed: ${replicateError.message}`);
             console.log('🔄 Falling back to Gemini image generation...');
         }
     } else {
-        console.log('ℹ️  AI_SERVICE_URL not configured — using Gemini for logo generation.');
+        console.log('ℹ️  REPLICATE_API_TOKEN not configured — using Gemini for logo generation.');
     }
 
     // --- Fallback: Gemini image generation ---
@@ -49,7 +50,7 @@ exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
     const industry  = brandCtx.industry || '';
     const colors    = brandCtx.colors || '';
 
-    // We only need one combined prompt for the improved SDXL service which returns 2 images
+    // We only need one combined prompt for the improved Replicate service which returns multiple images
     const finalPrompt = [
         basePrompt,
         industry ? `${industry} industry` : null,
@@ -58,10 +59,11 @@ exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
     ].filter(Boolean).join(', ');
 
     try {
-        // 1. Try SDXL first (returns 2 images in one go)
-        if (config.aiService?.url) {
+        // 1. Try Replicate first
+        const token = config.aiService?.replicateToken || process.env.REPLICATE_API_TOKEN;
+        if (token) {
             try {
-                const results = await generateLogoViaSDXL(finalPrompt, config.aiService.url);
+                const results = await generateLogoViaReplicate(finalPrompt, 2);
                 if (results && results.length >= 2) {
                     return [
                         { ...results[0], variantStyle: 'Variant 1' },
@@ -69,7 +71,7 @@ exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
                     ];
                 }
             } catch (err) {
-                console.warn(`⚠️ SDXL service failed: ${err.message}`);
+                console.warn(`⚠️ Replicate service failed: ${err.message}`);
             }
         }
 
@@ -92,41 +94,85 @@ exports.generateLogoVariants = async (basePrompt, brandCtx = {}) => {
 };
 
 /**
- * Primary: Generate logos via the ngrok-hosted SDXL FastAPI service
- * Now supports returning multiple images in one call.
+ * Helper to download an image from a URL and convert it to a base64 Data URL.
  */
-async function generateLogoViaSDXL(prompt, serviceUrl) {
-    const baseUrl = serviceUrl.replace(/\/$/, '');
-    const aiEndpoint = `${baseUrl}/generate`;
+async function convertUrlToBase64(url) {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+    let mimeType = response.headers['content-type'] || 'image/webp';
+    if (mimeType === 'application/octet-stream') {
+        mimeType = 'image/webp';
+    }
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
 
-    console.log(`🚀 Calling SDXL Service: POST ${aiEndpoint}`);
-    console.log(`📝 Prompt: ${prompt.substring(0, 120)}...`);
+/**
+ * Primary: Generate logos via Replicate using Flux dev LoRA model
+ * Supports generating multiple images in one call.
+ */
+async function generateLogoViaReplicate(prompt, numOutputs = 1) {
+    const Replicate = require('replicate');
+    const token = config.aiService?.replicateToken || process.env.REPLICATE_API_TOKEN;
+    if (!token) {
+        throw new Error('REPLICATE_API_TOKEN is not configured');
+    }
 
-    const response = await axios.post(
-        `${aiEndpoint}?prompt=${encodeURIComponent(prompt)}`,
-        null,
+    const replicate = new Replicate({
+        auth: token,
+    });
+
+    console.log(`🚀 Calling Replicate Service with prompt: "${prompt.substring(0, 120)}..."`);
+    console.log(`🔢 Requesting ${numOutputs} outputs...`);
+
+    const output = await replicate.run(
+        "tharushi1019/brandibot-model:d383ee425705d765420493ff450e778b95594f46f1598aaf8f34201e65664714",
         {
-            headers: { 'ngrok-skip-browser-warning': 'true' },
-            timeout: 120000, 
+            input: {
+                prompt: prompt,
+                model: "dev",
+                go_fast: false,
+                lora_scale: 1,
+                megapixels: "1",
+                num_outputs: numOutputs,
+                aspect_ratio: "1:1",
+                output_format: "webp",
+                guidance_scale: 3,
+                output_quality: 80,
+                prompt_strength: 0.8,
+                extra_lora_scale: 1,
+                num_inference_steps: 28
+            }
         }
     );
 
-    const imagesBase64 = response.data.images_base64 || (response.data.image_base64 ? [response.data.image_base64] : []);
-    
-    if (!imagesBase64.length) {
-        throw new Error('No images returned from SDXL Service');
+    console.log('Replicate raw output:', output);
+
+    if (!output || !output.length) {
+        throw new Error('No images returned from Replicate Service');
     }
 
-    console.log(`✅ SDXL generated ${imagesBase64.length} images!`);
+    // Convert output URLs to base64 Data URLs to maintain absolute backward compatibility
+    const results = [];
+    for (let i = 0; i < output.length; i++) {
+        // Output can be a string URL or an object with .url() depending on the SDK version/behavior
+        const urlStr = typeof output[i] === 'string' 
+            ? output[i] 
+            : (typeof output[i].url === 'function' ? output[i].url() : output[i].toString());
+            
+        console.log(`📥 Downloading and converting image ${i + 1} from Replicate: ${urlStr}`);
+        const base64DataUrl = await convertUrlToBase64(urlStr);
+        results.push({
+            url: base64DataUrl,
+            metadata: {
+                prompt,
+                provider: 'replicate',
+                model: 'tharushi1019/brandibot-model',
+                variant_index: i
+            }
+        });
+    }
 
-    return imagesBase64.map((base64Data, idx) => ({
-        url: `data:image/png;base64,${base64Data}`,
-        metadata: {
-            prompt,
-            provider: 'sdxl-fastapi-ngrok',
-            variant_index: idx
-        }
-    }));
+    return numOutputs === 1 ? results[0] : results;
 }
 
 /**

@@ -322,7 +322,7 @@ async function buildPDF(guidelines, logo, brandContext, isDark) {
 }
 
 /* ── Main Component ────────────────────────────────────────────── */
-const BrandGuidelinesModal = ({ logo, onClose }) => {
+const BrandGuidelinesModal = ({ logo, onClose, brandContext }) => {
   const { user } = useAuth();
   const { isDark } = useTheme();
   // We prioritize the logo object's metadata for state isolation
