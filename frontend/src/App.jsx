@@ -11,6 +11,7 @@ import MockUpGenerator from "./pages/MockUpGenerator.jsx";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import LogoAgent from "./pages/LogoAgent.jsx";
+import LogoGenerator from "./pages/LogoGenerator.jsx";
 import PurchasePage from "./pages/PurchasePage.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -27,6 +28,7 @@ function App() {
 
         {/* Protected Routes Without Layout */}
         <Route path="/logo-agent" element={<ProtectedRoute><LogoAgent /></ProtectedRoute>} />
+        <Route path="/logo_generator" element={<ProtectedRoute><LogoGenerator /></ProtectedRoute>} />
 
         {/* Protected Routes With Dashboard Layout */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

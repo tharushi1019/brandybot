@@ -42,24 +42,20 @@ exports.generateMockup = catchAsync(async (req, res, next) => {
         return next(new AppError(`Invalid mockup type "${rawType}". Allowed: ${Object.keys(TEMPLATE_MAP).join(', ')}`, 400));
     }
 
+    // Resolve logoId once at the start
+    let logoId = req.body.logoId;
+    if (!logoId && logoUrl) {
+        const [logo] = await sql`SELECT id FROM logo_history WHERE logo_url = ${logoUrl} LIMIT 1`;
+        if (logo) logoId = logo.id;
+    }
+
     // 1. Check DB for existing mockup
     let existingMockup = null;
-    if (logoUrl) {
-        // Find by logoUrl (since logo_id might not be sent by frontend yet)
-        // or join with logo_history. For now, let's use logo_id if provided, 
-        // else try to find logo_id from logo_url
-        let logoId = req.body.logoId;
-        if (!logoId && logoUrl) {
-            const [logo] = await sql`SELECT id FROM logo_history WHERE logo_url = ${logoUrl} LIMIT 1`;
-            if (logo) logoId = logo.id;
-        }
-
-        if (logoId) {
-            [existingMockup] = await sql`
-                SELECT * FROM logo_mockups 
-                WHERE logo_id = ${logoId} AND template_type = ${type}
-            `;
-        }
+    if (logoId) {
+        [existingMockup] = await sql`
+            SELECT * FROM logo_mockups 
+            WHERE logo_id = ${logoId} AND template_type = ${type}
+        `;
     }
 
     if (existingMockup) {
@@ -83,11 +79,6 @@ exports.generateMockup = catchAsync(async (req, res, next) => {
     });
 
     // 3. Save to DB if we have a logoId
-    let logoId = req.body.logoId;
-    if (!logoId && logoUrl) {
-        const [logo] = await sql`SELECT id FROM logo_history WHERE logo_url = ${logoUrl} LIMIT 1`;
-        if (logo) logoId = logo.id;
-    }
 
     if (logoId && result.url) {
         try {

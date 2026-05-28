@@ -3,11 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLogo } from '../context/LogoContext';
-import axios from 'axios';
+import api from '../services/api';
 import BrandGuidelinesModal from '../components/BrandGuidelinesModal';
 import MockupModal from '../components/MockupModal';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = '/logo-agent';
+const CHAT_BASE = '/chat';
+const CREDITS_BASE = '/credits';
 
 // ─── Inline markdown helpers ──────────────────────────────────
 const inlineBold = (text) => {
@@ -112,7 +114,7 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
       <div style={{ display:'flex', alignItems:'center', gap:40, width:'100%', justifyContent:'center', padding:'0 40px' }}>
         <button onClick={() => setIdx(i => Math.max(0,i-1))} disabled={idx===0}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===0?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', opacity:idx===0?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
           ‹
         </button>
         
@@ -132,7 +134,7 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
 
         <button onClick={() => setIdx(i => Math.min(logos.length-1,i+1))} disabled={idx===logos.length-1}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', itemsCenter:'center', justifyContent:'center', cursor:'pointer', opacity:idx===logos.length-1?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', opacity:idx===logos.length-1?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
           ›
         </button>
       </div>
@@ -341,24 +343,21 @@ const LogoAgent = () => {
 
   const fetchSessions = async () => {
     try {
-      const token = await getToken();
-      const res = await axios.get(`${API}/chat/sessions`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get(`${CHAT_BASE}/sessions`);
       setSessions(res.data.data || []);
     } catch (e) { /* silent */ }
   };
 
   const fetchCredits = async () => {
     try {
-      const token = await getToken();
-      const res = await axios.get(`${API}/credits`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get(`${CREDITS_BASE}`);
       setCredits(res.data.data?.balance);
     } catch (e) { /* silent */ }
   };
 
   const loadSession = async (sessionId, fromGuest = false) => {
     try {
-      const token = await getToken();
-      const res = await axios.get(`${API}/chat/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get(`${CHAT_BASE}/sessions/${sessionId}`);
       const session = res.data.data;
       setActiveSessionId(sessionId);
       const ctx = session.brand_context || {};
@@ -367,7 +366,8 @@ const LogoAgent = () => {
         id: m.id,
         role: m.role,
         content: m.content,
-        logo: m.metadata?.logoResult || null
+        logo: m.metadata?.logoResult || null,
+        logos: m.metadata?.logoResults || null
       }));
       setMessages(loadedMessages);
 
@@ -401,8 +401,7 @@ const LogoAgent = () => {
 
   const deleteSession = async (id) => {
     try {
-      const token = await getToken();
-      await axios.delete(`${API}/chat/sessions/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`${CHAT_BASE}/sessions/${id}`);
       setSessions(prev => prev.filter(s => s.id !== id));
       if (activeSessionId === id) newChat();
     } catch (e) { /* silent */ }
@@ -427,11 +426,9 @@ const LogoAgent = () => {
     }]);
 
     try {
-      const token = await getToken();
-      const res = await axios.post(
-        `${API}/logo-agent/message`,
+      const res = await api.post(
+        `${API_BASE}/message`,
         { sessionId: activeSessionId, message: text, brandContext },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = res.data.data;
 
