@@ -1,17 +1,44 @@
-node_modules
-backend/node_modules
-backend/.env
-brandy_bot_full_project_documentation.md
-frontend/node_modules
-frontend/.env
-frontend/dist
+# ─── Node / JS ────────────────────────────────────────────────
+node_modules/
+*/node_modules/
 
-notebook41b1fb4630.ipynb
-brandibot-with-my-trained-model - Promt updated.ipynb
-backend/public
-backend/tests
+# ─── Build outputs ────────────────────────────────────────────
+frontend/dist/
+frontend/.vite/
+
+# ─── Environment files (NEVER commit real .env files) ────────
+# Keep .env.example committed; all others are secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Explicit subdirectory coverage
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
 ai-service/.env
+ai-service/.env.*
+
+# ─── Notebooks (large binary files) ──────────────────────────
+notebook41b1fb4630.ipynb
+brandibot-with-my-trained-model - Promt updated.ipynb
+
+# ─── Backend generated files ──────────────────────────────────
+backend/public/
+backend/tests/
+ai-service/static/
+
+# ─── Misc ─────────────────────────────────────────────────────
 Table_Structure.txt
 docs/implementation_plan.md
 nb_code.txt
+brandy_bot_full_project_documentation.md
+*.log
+.DS_Store
+Thumbs.db

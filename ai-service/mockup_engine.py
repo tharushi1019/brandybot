@@ -24,6 +24,7 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 
 # Attempt to import rembg; fall back gracefully if not installed
 try:
+    # pyrefly: ignore [missing-import]
     from rembg import remove as remove_bg
     REMBG_AVAILABLE = True
 except ImportError:
@@ -156,7 +157,6 @@ def make_tshirt(logo: Image.Image, brand_name: str,
     draw.ellipse([320, 130, 480, 210], fill=(255, 255, 255, 255))
 
     # Logo on chest
-    chest_box = (280, 280, 240, 240)  # x, y, w, h
     card = paste_logo(shirt, logo, (280, 280, 240, 240))
 
     # Brand name below logo

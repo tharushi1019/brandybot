@@ -53,6 +53,9 @@ const getConfig = () => {
         frontend: {
             url: process.env.FRONTEND_URL || 'http://localhost:5173'
         },
+        backend: {
+            url: process.env.BACKEND_URL || `http://localhost:${parseInt(process.env.PORT, 10) || 5000}`
+        },
         firebase: {
             projectId: process.env.FIREBASE_PROJECT_ID,
             privateKey: process.env.FIREBASE_PRIVATE_KEY,

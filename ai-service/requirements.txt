@@ -3,7 +3,9 @@ uvicorn==0.27.1
 pydantic==2.6.1
 python-multipart==0.0.9
 requests==2.31.0
-pillow==10.2.0
+pillow>=10.2.0
 python-dotenv==1.0.1
-# Optional: background removal for logo compositing (install separately if needed)
-# rembg==2.0.56
+# Optional: background removal for logo compositing
+# Requires ~2GB download (onnxruntime ML model). Remove comment to enable.
+rembg>=2.0.56
+onnxruntime>=1.16.0,<2.0.0

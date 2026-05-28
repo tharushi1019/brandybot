@@ -57,23 +57,30 @@ exports.getSessionById = catchAsync(async (req, res, next) => {
         ORDER BY created_at ASC
     `;
 
-    // If this session has a linked logo, attach it to the generate_logo message
-    // so the frontend can render the logo image when restoring chat history
+    // If this session has a linked logo, attach it and all variants to the generate_logo message
+    // so the frontend can render the logo images when restoring chat history
     let logoData = null;
+    let logoVariants = [];
     if (session.logo_id) {
         [logoData] = await sql`
             SELECT * FROM logo_history WHERE id = ${session.logo_id}
         `;
+        if (logoData && logoData.generation_group_id) {
+            logoVariants = await sql`
+                SELECT * FROM logo_history WHERE generation_group_id = ${logoData.generation_group_id} ORDER BY created_at ASC
+            `;
+        }
     }
 
     const enrichedMessages = messages.map(msg => {
-        // Attach logo to the message that triggered generation
-        if (msg.action === 'generate_logo' && logoData) {
+        // Attach logo and variants to the message that triggered generation
+        if (msg.action === 'generate_logo') {
             return {
                 ...msg,
                 metadata: {
                     ...(msg.metadata || {}),
                     logoResult: logoData,
+                    logoResults: logoVariants.length > 0 ? logoVariants : (msg.metadata?.logoResults || (logoData ? [logoData] : []))
                 }
             };
         }
