@@ -25,6 +25,8 @@ const corsOptions = {
         const allowedOrigins = [
             // From env (Netlify URL in prod, localhost in dev)
             config.frontend.url,
+            // Always allow the production Netlify deployment
+            'https://brandy-bot.netlify.app',
             // Always allow local dev origins
             'http://localhost:5173',
             'http://localhost:3000',
@@ -34,11 +36,19 @@ const corsOptions = {
         ].filter(Boolean); // remove falsy values
 
         // Allow requests with no origin (mobile apps, Postman, etc.)
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Or if the origin is explicitly in allowedOrigins
+        // Or if it is a netlify subdomain (useful for Netlify branch/preview deploys)
+        const isAllowed = !origin || 
+                          allowedOrigins.includes(origin) || 
+                          (origin.startsWith('https://') && origin.endsWith('.netlify.app'));
+
+        if (isAllowed) {
             callback(null, true);
         } else {
             console.warn(`⛔ CORS blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
+            // Return null, false to reject CORS gracefully (browser blocks request) 
+            // instead of throwing an Express error which results in a 500 Internal Server Error
+            callback(null, false);
         }
     },
     credentials: true,
