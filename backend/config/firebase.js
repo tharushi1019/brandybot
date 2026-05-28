@@ -5,6 +5,11 @@ const setupFirebase = () => {
     const config = getConfig();
 
     try {
+        if (admin.apps.length > 0) {
+            console.log('✅ Firebase Admin SDK already initialized (Reused App)');
+            return admin.apps[0];
+        }
+
         if (!config.firebase.projectId || !config.firebase.privateKey || !config.firebase.clientEmail) {
             console.warn('⚠️ Firebase Admin SDK config missing - Auth features will not work');
             return null;

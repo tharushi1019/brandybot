@@ -224,6 +224,37 @@ exports.chatAI = async () => {
 };
 
 /**
+ * Generate a transparent typography logo lockup via Python AI Service.
+ */
+exports.generateLogoLockupAI = async (payload) => {
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    console.log(`🤖 Generating logo typography lockup via Python AI Service: ${aiServiceUrl}`);
+
+    try {
+        const response = await axios.post(`${aiServiceUrl}/api/v1/generate/lockup`, {
+            logo_url:          payload.logoUrl,
+            brand_name:        payload.brandName,
+            tagline:           payload.tagline || '',
+            layout:            payload.layout || 'vertical',
+            font_family:       payload.fontFamily || 'Inter',
+            primary_color:     payload.primaryColor || '#000000',
+            secondary_color:   payload.secondaryColor || '#666666',
+            font_size_name:    payload.fontSizeName || 48,
+            font_size_tagline: payload.fontSizeTagline || 24,
+            gap:               payload.gap || 20
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error('❌ Python lockup service failed:', error.message);
+        if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+            throw new Error('Python AI service is offline. Please make sure to start it by running "python main.py" inside the "ai-service" folder.');
+        }
+        throw new Error(error.response?.data?.detail || 'Lockup generation service failed');
+    }
+};
+
+/**
  * Generate a product mockup using Gemini image generation.
  * Places the brand/logo concept on a realistic scene for each template type.
  */

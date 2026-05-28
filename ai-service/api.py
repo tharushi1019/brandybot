@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
-from models import LogoRequest, LogoResponse, ChatRequest, ChatResponse, MockupRequest, MockupResponse
+from models import LogoRequest, LogoResponse, ChatRequest, ChatResponse, MockupRequest, MockupResponse, LockupRequest, LockupResponse
 import time
 import os
 import uuid
 from image_client import generate_image_pollinations
 from mockup_engine import generate_mockup, TEMPLATES
+from lockup_engine import generate_lockup_image
 
 router = APIRouter()
 
@@ -103,4 +104,39 @@ async def generate_mockup_endpoint(request: MockupRequest):
             status_code=500,
             detail=f"Mockup generation failed: {str(e)}"
         )
+
+
+# ---------------------------------------------------------
+# Logo Lockup Generation Endpoint
+# ---------------------------------------------------------
+@router.post("/generate/lockup", response_model=LockupResponse)
+async def generate_lockup_endpoint(request: LockupRequest):
+    print(f"🔤 Generating Logo Lockup: {request.layout} for '{request.brand_name}'")
+
+    try:
+        filepath, filename = generate_lockup_image(
+            logo_url=request.logo_url,
+            brand_name=request.brand_name,
+            tagline=request.tagline or "",
+            layout=request.layout or "vertical",
+            font_family=request.font_family or "Inter",
+            primary_color=request.primary_color or "#000000",
+            secondary_color=request.secondary_color or "#666666",
+            font_size_name=request.font_size_name or 48,
+            font_size_tagline=request.font_size_tagline or 24,
+            gap=request.gap or 20
+        )
+
+        lockup_url = f"{AI_SERVICE_URL}/static/{filename}"
+        print(f"✅ Lockup saved: {filepath}")
+
+        return LockupResponse(url=lockup_url)
+
+    except Exception as e:
+        print(f"❌ Lockup Generation Failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lockup generation failed: {str(e)}"
+        )
+
 
