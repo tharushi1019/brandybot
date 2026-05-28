@@ -8,8 +8,12 @@ const fs = require('fs');
 
 // Ensure logos directory exists
 const LOGOS_DIR = path.join(__dirname, '..', 'public', 'logos');
-if (!fs.existsSync(LOGOS_DIR)) {
-    fs.mkdirSync(LOGOS_DIR, { recursive: true });
+try {
+    if (!fs.existsSync(LOGOS_DIR)) {
+        fs.mkdirSync(LOGOS_DIR, { recursive: true });
+    }
+} catch (err) {
+    console.warn('⚠️ Unable to create local logos directory (normal in read-only serverless environments):', err.message);
 }
 
 /**
