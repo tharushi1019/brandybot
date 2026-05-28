@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { generateLogo } from "../services/logoService";
+import LogoCustomizerModal from "../components/LogoCustomizerModal";
 
 // The 7-step interview questions
 const INTERVIEW_STEPS = [
@@ -63,6 +64,7 @@ export default function LogoGenerator() {
   const [logoData, setLogoData] = useState(null);
   const [isDone, setIsDone] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
 
   const addMessage = (sender, text) => {
     setMessages((prev) => [...prev, { sender, text }]);
@@ -292,6 +294,12 @@ Perfect! I have everything I need. Let me design your logo now — this may take
                 >
                   ⬇ Download Logo
                 </button>
+                <button
+                  onClick={() => setCustomizerOpen(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-700 transition"
+                >
+                  ✏️ Customize Typography
+                </button>
                 <Link
                   to="/mockup_generator"
                   state={{ logoUrl: displayLogoUrl, brandName: brandProfile.brandName }}
@@ -340,6 +348,13 @@ Perfect! I have everything I need. Let me design your logo now — this may take
           Send
         </button>
       </div>
+      
+      {customizerOpen && (
+        <LogoCustomizerModal
+          logo={{ id: logoData?.id || null, logo_url: generatedLogo, brand_name: brandProfile.brandName }}
+          onClose={() => setCustomizerOpen(false)}
+        />
+      )}
     </div>
   );
 }

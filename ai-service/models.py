@@ -34,3 +34,20 @@ class MockupRequest(BaseModel):
 class MockupResponse(BaseModel):
     url: str
     template_type: str
+
+# Lockup Models
+class LockupRequest(BaseModel):
+    logo_url: str
+    brand_name: str
+    tagline: Optional[str] = ""
+    layout: Optional[str] = "vertical"
+    font_family: Optional[str] = "Inter"
+    primary_color: Optional[str] = "#000000"
+    secondary_color: Optional[str] = "#666666"
+    font_size_name: Optional[int] = 48
+    font_size_tagline: Optional[int] = 24
+    gap: Optional[int] = 20
+
+class LockupResponse(BaseModel):
+    url: str
+

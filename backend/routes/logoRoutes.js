@@ -12,6 +12,7 @@ router.use(protect);
 router.use(apiLimiter);
 
 router.post('/generate', logoController.generateLogo);
+router.post('/lockup', logoController.generateLogoLockup);
 router.get('/history', logoController.getLogoHistory);
 router.get('/:id', logoController.getLogoById);
 router.post('/:id/rate', logoController.rateLogo);

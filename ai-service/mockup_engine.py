@@ -22,13 +22,8 @@ from typing import Optional
 STATIC_DIR = "static"
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-# Attempt to import rembg; fall back gracefully if not installed
-try:
-    # pyrefly: ignore [missing-import]
-    from rembg import remove as remove_bg
-    REMBG_AVAILABLE = True
-except ImportError:
-    REMBG_AVAILABLE = False
+# Set REMBG_AVAILABLE explicitly to False to avoid blocking download of massive ML model in active requests
+REMBG_AVAILABLE = False
 
 
 def hex_to_rgb(hex_color: str) -> tuple:

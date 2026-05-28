@@ -1,7 +1,7 @@
 const { sql } = require('../config/db');
 const { catchAsync } = require('../utils/errorHandler');
 const { AppError } = require('../utils/AppError');
-const { generateLogoAI } = require('../services/aiService');
+const { generateLogoAI, generateLogoLockupAI } = require('../services/aiService');
 const { generateImagePrompt } = require('../services/llmService');
 const path = require('path');
 const fs = require('fs');
@@ -229,3 +229,118 @@ exports.rateLogo = catchAsync(async (req, res, next) => {
 
     res.status(200).json({ success: true, data: logo });
 });
+
+/**
+ * @desc    Generate a transparent typography lockup for a logo
+ * @route   POST /api/logos/lockup
+ * @access  Private
+ */
+exports.generateLogoLockup = catchAsync(async (req, res, next) => {
+    const {
+        logoId,
+        logoUrl,
+        brandName,
+        tagline,
+        layout,
+        fontFamily,
+        primaryColor,
+        secondaryColor,
+        fontSizeName,
+        fontSizeTagline,
+        gap,
+        compiledBase64
+    } = req.body;
+
+    if (!brandName) {
+        return next(new AppError('Brand name is required', 400));
+    }
+
+    let finalLogoUrl = logoUrl;
+
+    if (logoId) {
+        const [logo] = await sql`
+            SELECT logo_url FROM logo_history WHERE id = ${logoId} AND user_id = ${req.user.id}
+        `;
+        if (logo) {
+            finalLogoUrl = logo.logo_url;
+        }
+    }
+
+    // Bypass Python service completely if compiledBase64 is provided directly by client
+    if (compiledBase64) {
+        try {
+            console.log(`💾 Controller: Uploading pre-compiled client-side lockup for '${brandName}'`);
+            const lockupUrl = await uploadToImgBB(compiledBase64);
+            console.log(`💾 Transparent Lockup uploaded to ImgBB: ${lockupUrl}`);
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    lockupUrl,
+                    settings: {
+                        layout,
+                        fontFamily,
+                        primaryColor,
+                        secondaryColor,
+                        fontSizeName,
+                        fontSizeTagline,
+                        gap
+                    }
+                }
+            });
+        } catch (uploadError) {
+            console.error('❌ Direct ImgBB upload of client lockup failed:', uploadError.message);
+            return next(new AppError('Direct lockup upload failed: ' + uploadError.message, 500));
+        }
+    }
+
+    if (!finalLogoUrl) {
+        return next(new AppError('Logo icon URL is required', 400));
+    }
+
+    try {
+        console.log(`🔤 Controller: Generating lockup for '${brandName}' via Python AI Service`);
+        
+        const aiResult = await generateLogoLockupAI({
+            logoUrl: finalLogoUrl,
+            brandName,
+            tagline,
+            layout,
+            fontFamily,
+            primaryColor,
+            secondaryColor,
+            fontSizeName,
+            fontSizeTagline,
+            gap
+        });
+
+        let lockupUrl = aiResult.url;
+        try {
+            lockupUrl = await uploadToImgBB(aiResult.url);
+            console.log(`💾 Transparent Lockup uploaded to ImgBB: ${lockupUrl}`);
+        } catch (uploadError) {
+            console.warn('⚠️ Failed to upload lockup to ImgBB, using base/local URL:', uploadError.message);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                lockupUrl,
+                settings: {
+                    layout,
+                    fontFamily,
+                    primaryColor,
+                    secondaryColor,
+                    fontSizeName,
+                    fontSizeTagline,
+                    gap
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Lockup generation controller failed:', error.message);
+        return next(new AppError('Lockup generation failed: ' + error.message, 500));
+    }
+});
+

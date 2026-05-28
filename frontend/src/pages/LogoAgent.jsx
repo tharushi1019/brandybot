@@ -6,6 +6,7 @@ import { useLogo } from '../context/LogoContext';
 import api from '../services/api';
 import BrandGuidelinesModal from '../components/BrandGuidelinesModal';
 import MockupModal from '../components/MockupModal';
+import LogoCustomizerModal from '../components/LogoCustomizerModal';
 
 const API_BASE = '/logo-agent';
 const CHAT_BASE = '/chat';
@@ -142,7 +143,7 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
   );
 };
 
-const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onImageClick }) => {
+const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onCustomizerClick, onImageClick }) => {
   const isUser = msg.role === 'user';
   const logoCount = msg.logos?.length ?? 0;
   
@@ -201,6 +202,10 @@ const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onImageClick }) 
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-2">
                 ✨ Mockups
               </button>
+              <button onClick={() => onCustomizerClick(primaryLogo)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition flex items-center gap-2">
+                ✏️ Typography Lockup
+              </button>
               <button onClick={() => window.open(primaryLogo.logo_url, '_blank')}
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition flex items-center gap-2">
                 🔗 New Tab
@@ -221,6 +226,10 @@ const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onImageClick }) 
               <button onClick={() => onMockupClick(msg.logo)}
                 className="flex-1 py-2 px-3 text-xs font-bold rounded-xl border border-white/10 bg-white/5">
                 👕 Mockups
+              </button>
+              <button onClick={() => onCustomizerClick(msg.logo)}
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-xl border border-white/10 bg-white/5">
+                ✏️ Typography Lockup
               </button>
             </div>
           </div>
@@ -286,6 +295,7 @@ const LogoAgent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [guidelinesModal, setGuidelinesModal] = useState({ open: false, logo: null });
   const [mockupModal, setMockupModal] = useState({ open: false, logo: null });
+  const [customizerModal, setCustomizerModal] = useState({ open: false, logo: null });
   const [lightbox, setLightbox] = useState({ open: false, logos: [], index: 0 });
   const openLightbox = (logos, index) => setLightbox({ open: true, logos, index });
   const closeLightbox = () => setLightbox({ open: false, logos: [], index: 0 });
@@ -579,6 +589,7 @@ const LogoAgent = () => {
               msg={msg}
               onGuidelinesClick={(logo) => setGuidelinesModal({ open: true, logo })}
               onMockupClick={(logo) => setMockupModal({ open: true, logo })}
+              onCustomizerClick={(logo) => setCustomizerModal({ open: true, logo })}
               onImageClick={openLightbox}
             />
           ))}
@@ -641,6 +652,12 @@ const LogoAgent = () => {
         <MockupModal
           logo={mockupModal.logo}
           onClose={() => setMockupModal({ open: false, logo: null })}
+        />
+      )}
+      {customizerModal.open && (
+        <LogoCustomizerModal
+          logo={customizerModal.logo}
+          onClose={() => setCustomizerModal({ open: false, logo: null })}
         />
       )}
       {lightbox.open && lightbox.logos.length > 0 && (
