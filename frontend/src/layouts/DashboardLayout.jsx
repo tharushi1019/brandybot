@@ -19,6 +19,7 @@ const bottomNavItems = [
   { name: "Dashboard", path: "/dashboard", icon: "📊" },
   { name: "My Logos", path: "/logo_history", icon: "🖼" },
   { name: "Logo Agent", path: "/logo-agent", icon: "✨" },
+  { name: "Profile", path: "/profile", icon: "👤" },
   { name: "Settings", path: "/settings", icon: "⚙️" },
 ];
 

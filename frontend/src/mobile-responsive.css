@@ -1,0 +1,843 @@
+/* ================================================================
+   BRANDYBOT — MOBILE RESPONSIVE STYLESHEET v4
+   Logo Agent: Gemini / ChatGPT / Claude style mobile drawer.
+   Desktop: unchanged — sidebar always visible in flex layout.
+   ================================================================ */
+
+/* ── Prevent horizontal scroll globally ─────────────────────── */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* ================================================================
+   SECTION 1: LOGO AGENT — GEMINI-STYLE MOBILE DRAWER
+   ---------------------------------------------------------------
+   Desktop (≥768px):  sidebar stays in normal flex flow. No change.
+   Mobile  (<768px):  sidebar slides in/out as a fixed overlay.
+                      Main chat fills 100% screen always.
+                      Semi-transparent backdrop blocks content.
+                      Tap backdrop or ☰ to close.
+   ================================================================ */
+
+/* ── 1A. MOBILE ONLY — full-screen chat area ─────────────────── */
+@media (max-width: 767px) {
+
+  /* Root container — establish stacking context */
+  .flex.h-screen.overflow-hidden {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  /* ── MAIN CHAT AREA: always fills 100% screen on mobile ── */
+  /* Remove it from flex flow so sidebar width has zero effect */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col.flex-1.min-w-0 {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  /* ── SIDEBAR: fixed drawer, slides from left ── */
+  .flex.h-screen.overflow-hidden > div:first-child {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    /* Smooth slide animation like Gemini */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s ease !important;
+    will-change: transform !important;
+  }
+
+  /* Sidebar OPEN (w-72 class active) — slides fully into view */
+  .flex.h-screen.overflow-hidden > div.w-72:first-child {
+    width: 280px !important;
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 60px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  /* Sidebar CLOSED (w-0 class active) — slides off-screen */
+  .flex.h-screen.overflow-hidden > div.w-0:first-child {
+    width: 280px !important;        /* keep DOM width so content renders */
+    transform: translateX(-100%) !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ── 1B. BACKDROP — real DOM overlay with smooth fade ───────── */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .sidebar-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(2px) !important;
+    z-index: 200 !important;
+    animation: backdropIn 0.25s ease forwards !important;
+    cursor: pointer;
+  }
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── 1C. COMPACT TOP BAR on mobile ─────────────────────────── */
+@media (max-width: 767px) {
+
+  /* Top bar — tighter padding on mobile */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col > div.flex.items-center.justify-between.px-4.py-3.border-b {
+    padding: 0.625rem 0.875rem !important;
+    gap: 0.5rem;
+  }
+
+  /* Messages area */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col > div.flex-1.overflow-y-auto.p-6 {
+    padding: 0.875rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  /* Input bar */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col > div.p-4.border-t {
+    padding: 0.75rem !important;
+  }
+
+  /* Chat input textarea alignment and line-height on mobile */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col > div.p-4.border-t textarea {
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+    line-height: 1.25rem !important;
+    font-size: 0.875rem !important;
+    min-height: 40px !important;
+  }
+
+  /* Hide "Press Enter to send" tip — waste of space on mobile */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col > div.p-4.border-t > p.text-xs {
+    display: none !important;
+  }
+}
+
+/* ── 1D. LOGO RESULT CARDS in messages ─────────────────────── */
+@media (max-width: 767px) {
+
+  /* 2 logo cards per row */
+  .flex.h-screen.overflow-hidden div.flex.flex-wrap.gap-4 > div {
+    width: calc(50% - 0.5rem) !important;
+    min-width: 110px !important;
+  }
+
+  /* Quick action buttons below logos */
+  .flex.h-screen.overflow-hidden div.flex.gap-2.mt-4.flex-wrap > button {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+}
+
+/* ── 1E. CHAT BUBBLES max-width ─────────────────────────────── */
+@media (max-width: 767px) {
+  .chat-bubble-user {
+    max-width: 82% !important;
+    word-break: break-word;
+  }
+  .chat-bubble-ai {
+    max-width: 90% !important;
+  }
+}
+
+/* ── 1F. TABLET (768–1024px) — also starts with closed sidebar ─ */
+/* On tablet, sidebar still behaves as drawer (not permanent) */
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  .flex.h-screen.overflow-hidden {
+    position: relative !important;
+  }
+
+  /* Main chat — full width on tablet too */
+  .flex.h-screen.overflow-hidden > div.flex.flex-col.flex-1.min-w-0 {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Sidebar — same overlay drawer behaviour on tablet */
+  .flex.h-screen.overflow-hidden > div:first-child {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s ease !important;
+  }
+
+  .flex.h-screen.overflow-hidden > div.w-72:first-child {
+    width: 300px !important;
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 60px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .flex.h-screen.overflow-hidden > div.w-0:first-child {
+    width: 300px !important;
+    transform: translateX(-100%) !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ================================================================
+   SECTION 2: DASHBOARD LAYOUT (DashboardLayout.jsx)
+   ================================================================ */
+@media (max-width: 767px) {
+
+  /* Content scroll area — bottom padding for nav bar */
+  .flex-1.overflow-y-auto.pb-16 {
+    padding-bottom: 4.5rem !important;
+  }
+
+  /* Mobile header */
+  main > header {
+    padding: 0.75rem 1rem !important;
+  }
+
+  /* Bottom nav — safe area + 5 compact items */
+  nav.md\\:hidden.fixed.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  nav.md\\:hidden.fixed.bottom-0 a {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  nav.md\\:hidden.fixed.bottom-0 a > span:first-child {
+    font-size: 1.125rem !important;
+  }
+
+  nav.md\\:hidden.fixed.bottom-0 a > span:last-child {
+    font-size: 0.5rem !important;
+    line-height: 1;
+  }
+}
+
+/* ================================================================
+   SECTION 3: DASHBOARD PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+
+  /* Stats row — 3 compact columns */
+  .grid.grid-cols-1.sm\\:grid-cols-3.gap-4 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Stat card — compact vertical */
+  .p-5.rounded-2xl.flex.items-center.gap-4 {
+    padding: 0.625rem !important;
+    gap: 0.375rem !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center;
+  }
+
+  .p-5.rounded-2xl.flex.items-center.gap-4 > div.w-12.h-12 {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 1rem !important;
+    flex-shrink: 0;
+  }
+
+  .p-5.rounded-2xl.flex.items-center.gap-4 .text-3xl.font-black {
+    font-size: 1.25rem !important;
+  }
+
+  .p-5.rounded-2xl.flex.items-center.gap-4 p.text-sm {
+    font-size: 0.6rem !important;
+    line-height: 1.2;
+  }
+
+  /* Quick actions — 3 cols */
+  .grid.grid-cols-2.md\\:grid-cols-3.gap-4 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .p-5.rounded-2xl.group > div.w-12.h-12 {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 1rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .p-5.rounded-2xl.group p.font-bold {
+    font-size: 0.65rem !important;
+  }
+
+  .p-5.rounded-2xl.group p.text-xs {
+    display: none !important;
+  }
+
+  /* Brands header — stack */
+  .flex.items-center.justify-between.mb-6.flex-wrap {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.625rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .flex.items-center.justify-between.mb-6.flex-wrap .relative,
+  .flex.items-center.justify-between.mb-6.flex-wrap .relative input {
+    width: 100% !important;
+  }
+
+  /* Logo cards — 1 col */
+  .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Page content padding */
+  .flex-1.p-6.max-w-7xl.mx-auto.w-full {
+    padding: 0.875rem !important;
+  }
+}
+
+/* ================================================================
+   SECTION 4: LOGO HISTORY PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+
+  .flex-1.p-6 {
+    padding: 0.875rem !important;
+  }
+
+  .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4.gap-6 {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .rounded-2xl .h-44 {
+    height: 9rem !important;
+  }
+
+  .flex.justify-center.gap-3.mt-10 {
+    gap: 0.375rem !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .flex.justify-center.gap-3.mt-10 button,
+  .flex.justify-center.gap-3.mt-10 span {
+    padding: 0.4rem 0.625rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4.gap-6 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ================================================================
+   SECTION 5: MOCKUP MODAL
+   ================================================================ */
+@media (max-width: 767px) {
+
+  /* Bottom sheet */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 92dvh !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+  }
+
+  .modal-panel[style] {
+    max-width: 100vw !important;
+  }
+
+  /* Header compact */
+  .modal-panel > .flex.items-center.justify-between.p-5 {
+    padding: 0.875rem 1rem !important;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .modal-panel > .flex.items-center.justify-between.p-5 h2 {
+    font-size: 1rem !important;
+  }
+
+  .modal-panel > .flex.items-center.justify-between.p-5 > div.flex {
+    gap: 0.375rem !important;
+  }
+
+  .modal-panel > .flex.items-center.justify-between.p-5 button {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  /* Body — vertical layout */
+  .modal-panel > .p-5.flex.gap-5 {
+    flex-direction: column !important;
+    padding: 0.75rem !important;
+    gap: 0.625rem !important;
+    min-height: unset !important;
+    max-height: calc(92dvh - 7rem) !important;
+    overflow-y: auto;
+  }
+
+  /* Template sidebar → horizontal chips */
+  .modal-panel .w-44 {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.375rem !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+    flex-shrink: 0 !important;
+  }
+
+  .modal-panel .w-44::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal-panel .w-44 > p {
+    display: none !important;
+  }
+
+  .modal-panel .w-44 > button {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    min-width: 4.5rem !important;
+    padding: 0.5rem 0.625rem !important;
+    white-space: nowrap;
+  }
+
+  .modal-panel .w-44 button > p.text-xs {
+    display: none !important;
+  }
+
+  .modal-panel .w-44 button > div.flex.items-center.justify-between {
+    justify-content: center !important;
+  }
+
+  /* Preview panel */
+  .modal-panel .flex-1.flex.flex-col.items-center.justify-center {
+    min-height: 180px !important;
+    max-height: 250px !important;
+  }
+
+  .modal-panel img.max-h-72 {
+    max-height: 220px !important;
+    max-width: 100% !important;
+  }
+
+  /* Footer */
+  .modal-panel > .p-4.border-t.flex.justify-end {
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap;
+  }
+
+  .modal-panel > .p-4.border-t.flex.justify-end > button {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.75rem !important;
+    padding: 0.6rem !important;
+  }
+}
+
+/* ================================================================
+   SECTION 6: BRAND GUIDELINES MODAL
+   ================================================================ */
+@media (max-width: 767px) {
+
+  .modal-panel .grid.md\\:grid-cols-2.gap-6 {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem !important;
+  }
+
+  .modal-panel > .p-6.overflow-y-auto {
+    padding: 0.875rem !important;
+    max-height: calc(92dvh - 5rem) !important;
+  }
+
+  .modal-panel > .flex.items-center.justify-between.p-5 > div.flex.gap-2 button {
+    font-size: 0.7rem !important;
+    padding: 0.375rem 0.625rem !important;
+  }
+
+  .modal-panel .grid.grid-cols-2.gap-3 {
+    gap: 0.375rem !important;
+  }
+}
+
+/* ================================================================
+   SECTION 7: HOME PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+
+  nav.sticky.top-0 {
+    padding: 0.625rem 1rem !important;
+  }
+
+  section.relative.overflow-hidden {
+    padding: 3rem 1.25rem !important;
+  }
+
+  section.relative.overflow-hidden .absolute.animate-pulse-slow,
+  section.relative.overflow-hidden .absolute.rounded-2xl {
+    display: none !important;
+  }
+
+  section h1.text-5xl {
+    font-size: 2.125rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .flex.flex-col.sm\\:flex-row.gap-4.justify-center {
+    flex-direction: column !important;
+    align-items: center;
+    width: 100%;
+  }
+
+  .flex.flex-col.sm\\:flex-row.gap-4.justify-center > a,
+  .flex.flex-col.sm\\:flex-row.gap-4.justify-center > button {
+    width: 100%;
+    max-width: 340px;
+    justify-content: center;
+  }
+
+  section#features {
+    padding: 2.5rem 1.25rem !important;
+  }
+
+  section#features .grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  section#features h2,
+  section#how-it-works h2,
+  section#pricing h2 {
+    font-size: 1.75rem !important;
+  }
+
+  section#how-it-works {
+    padding: 2.5rem 1.25rem !important;
+  }
+
+  section#how-it-works .grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  section#pricing {
+    padding: 2.5rem 1rem !important;
+  }
+
+  section#pricing .grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem !important;
+  }
+
+  section#pricing .scale-105 {
+    transform: none !important;
+  }
+
+  .grid.grid-cols-2.md\\:grid-cols-4 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  section.px-6.py-24 {
+    padding: 3rem 1.25rem !important;
+  }
+
+  section.px-6.py-24 h2 {
+    font-size: 1.75rem !important;
+  }
+
+  footer .flex.justify-center.gap-6 {
+    flex-wrap: wrap;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 479px) {
+  section#features .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ================================================================
+   SECTION 8: AUTH PAGES
+   ================================================================ */
+@media (max-width: 767px) {
+  .relative.backdrop-blur-xl.rounded-2xl.shadow-2xl {
+    width: calc(100vw - 2.5rem) !important;
+    max-width: 400px !important;
+    padding: 1.5rem !important;
+  }
+}
+
+/* ================================================================
+   SECTION 9: PROFILE PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+  .max-w-4xl.mx-auto.px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .flex.flex-col.sm\\:flex-row.items-center.gap-6 {
+    gap: 1rem !important;
+  }
+
+  .flex.gap-3.mb-6 {
+    gap: 0.5rem !important;
+    flex-wrap: wrap;
+  }
+
+  .grid.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* ================================================================
+   SECTION 10: SETTINGS PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+  .max-w-2xl.mx-auto.px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .flex.gap-2 > button.flex-1 {
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.75rem !important;
+    min-width: 0;
+  }
+}
+
+/* ================================================================
+   SECTION 11: PURCHASE PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+  .border-b.px-6.py-4 {
+    padding: 0.75rem 1rem !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .max-w-5xl.mx-auto.px-6.py-12 {
+    padding: 1rem !important;
+    padding-top: 1.5rem !important;
+  }
+
+  .max-w-5xl h2.text-4xl {
+    font-size: 1.75rem !important;
+  }
+
+  .grid.md\\:grid-cols-3.gap-6 {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem !important;
+  }
+
+  .scale-105.shadow-2xl {
+    transform: none !important;
+  }
+}
+
+/* ================================================================
+   SECTION 12: BRAND GUIDELINES STANDALONE PAGE
+   ================================================================ */
+@media (max-width: 767px) {
+  .grid.grid-cols-1.sm\\:grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+
+  .grid.sm\\:grid-cols-2.gap-4,
+  .grid.sm\\:grid-cols-2.gap-6 {
+    grid-template-columns: 1fr !important;
+  }
+
+  footer.sticky .flex.flex-wrap.gap-2.justify-end {
+    justify-content: stretch !important;
+  }
+
+  footer.sticky .flex.flex-wrap.gap-2.justify-end > button,
+  footer.sticky .flex.flex-wrap.gap-2.justify-end > a {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* ================================================================
+   SECTION 13: LOGO GENERATOR (interview chat page)
+   ================================================================ */
+@media (max-width: 767px) {
+  header.p-5 {
+    padding: 0.75rem 1rem !important;
+  }
+
+  .flex-1.overflow-y-auto.p-4 {
+    padding: 0.75rem !important;
+    padding-bottom: 5.5rem !important;
+  }
+
+  .fixed.bottom-0.left-0.right-0 {
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* ================================================================
+   SECTION 14: CHATBOT WIDGET
+   ================================================================ */
+@media (max-width: 479px) {
+  .fixed.bottom-6.right-6.z-50 {
+    bottom: 5rem !important;
+    right: 0.875rem !important;
+  }
+
+  .fixed.bottom-6.right-6.z-50 > div.absolute {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 75dvh !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .fixed.bottom-6.right-6.z-50 {
+    bottom: 5.25rem !important;
+    right: 0.75rem !important;
+  }
+
+  .fixed.bottom-6.right-6.z-50 > div.absolute {
+    width: calc(100vw - 1.5rem) !important;
+    max-width: 340px !important;
+    right: 0 !important;
+  }
+}
+
+/* ================================================================
+   SECTION 15: LOGO LIGHTBOX — compact action bar on mobile
+   ================================================================ */
+@media (max-width: 640px) {
+
+  /* Action bar buttons smaller + wrap */
+  div[style*="inset:0"] div[style*="top:30"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px 16px !important;
+  }
+
+  div[style*="inset:0"] div[style*="top:30"] button {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+  }
+
+  /* Nav arrows — smaller */
+  div[style*="width:60"] {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+  }
+
+  /* Image constrained */
+  div[style*="inset:0"] img[style*="maxHeight:75vh"] {
+    max-height: 55vh !important;
+  }
+
+  /* Arrow row gap */
+  div[style*="gap:40"][style*="padding:0 40px"] {
+    gap: 12px !important;
+    padding: 0 10px !important;
+  }
+}
+
+/* ================================================================
+   SECTION 16: GLOBAL UTILITY
+   ================================================================ */
+@media (max-width: 767px) {
+
+  /* Header bars with md:pl-20 */
+  .px-6.py-4.md\\:pl-20 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Thin scrollbars on mobile */
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+
+/* ================================================================
+   SECTION 17: SAFE AREA INSETS (iPhone notch / Dynamic Island)
+   ================================================================ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 767px) {
+    nav.md\\:hidden.fixed.bottom-0 {
+      padding-bottom: env(safe-area-inset-bottom) !important;
+    }
+
+    .fixed.bottom-0.left-0.right-0 {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 0.625rem) !important;
+    }
+  }
+}
+
+/* ================================================================
+   SECTION 18: REDUCED MOTION PREFERENCE
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-pulse-slow {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

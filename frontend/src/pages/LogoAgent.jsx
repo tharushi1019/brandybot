@@ -292,7 +292,7 @@ const LogoAgent = () => {
   const [loading, setLoading] = useState(false);
   const [brandContext, setBrandContext] = useState({});
   const [credits, setCredits] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [guidelinesModal, setGuidelinesModal] = useState({ open: false, logo: null });
   const [mockupModal, setMockupModal] = useState({ open: false, logo: null });
   const [customizerModal, setCustomizerModal] = useState({ open: false, logo: null });
@@ -381,6 +381,10 @@ const LogoAgent = () => {
       }));
       setMessages(loadedMessages);
 
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      }
+
       // If coming from a guest handoff, add a confirmation message at the end
       if (fromGuest) {
         const ctxSummary = Object.entries(ctx)
@@ -407,6 +411,9 @@ const LogoAgent = () => {
       role: 'ai',
       content: "Starting fresh! 🚀 Tell me about your new brand. What's the name and what does it do?"
     }]);
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
   };
 
   const deleteSession = async (id) => {
@@ -498,26 +505,28 @@ const LogoAgent = () => {
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
 
       {/* ── Sidebar ── */}
-      <div className={`flex-shrink-0 flex flex-col h-screen border-r border-[var(--border-color)] transition-all duration-300 overflow-hidden ${sidebarOpen ? 'w-72' : 'w-0'}`}
-           style={{ background: 'var(--bg-secondary)' }}>
-        <div className="p-4 flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-shrink-0 flex flex-col border-r border-[var(--border-color)] transition-all duration-300 overflow-hidden ${sidebarOpen ? 'w-72' : 'w-0'}`}
+           style={{ background: 'var(--bg-secondary)', height: '100dvh' }}>
+
+        {/* ── TOP: Header + New Chat + Credits (fixed, never shrinks) ── */}
+        <div className="flex-shrink-0 p-4 pb-0">
           {/* Logo + App Name */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white font-bold text-sm">B</div>
-            <span className="font-bold text-lg brand-gradient-text">BrandyBot</span>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white font-bold text-sm flex-shrink-0">B</div>
+            <span className="font-bold text-base brand-gradient-text truncate">BrandyBot</span>
           </div>
 
           {/* New Chat Button */}
           <button
             onClick={newChat}
-            className="w-full py-2.5 px-4 rounded-xl brand-gradient text-white font-semibold text-sm hover:opacity-90 transition-opacity mb-4 flex-shrink-0"
+            className="w-full py-2 px-3 rounded-xl brand-gradient text-white font-semibold text-sm hover:opacity-90 transition-opacity mb-3 truncate"
           >
             + New Chat
           </button>
 
           {/* Credits Badge */}
           {credits !== null && (
-            <div className="flex items-center justify-between p-3 rounded-xl glass-card mb-4 flex-shrink-0">
+            <div className="flex items-center justify-between p-2.5 rounded-xl glass-card mb-3">
               <span className="text-xs text-[var(--text-muted)]">Credits</span>
               <span className={`text-sm font-bold ${credits < 10 ? 'text-red-400' : 'text-purple-400'}`}>
                 {credits} left
@@ -526,27 +535,29 @@ const LogoAgent = () => {
             </div>
           )}
 
-          {/* Sessions List */}
-          <p className="text-xs text-[var(--text-muted)] mb-2 font-semibold uppercase tracking-wider flex-shrink-0">Recent Chats</p>
-          <div className="overflow-y-auto flex-1 min-h-0">
-            {sessions.length === 0 ? (
-              <p className="text-xs text-[var(--text-muted)] text-center py-4">No chats yet. Start creating!</p>
-            ) : (
-              sessions.map(s => (
-                <SessionItem
-                  key={s.id}
-                  session={s}
-                  isActive={s.id === activeSessionId}
-                  onClick={() => loadSession(s.id)}
-                  onDelete={deleteSession}
-                />
-              ))
-            )}
-          </div>
+          {/* Recent Chats Label */}
+          <p className="text-xs text-[var(--text-muted)] mb-2 font-semibold uppercase tracking-wider">Recent Chats</p>
         </div>
 
-        {/* Bottom Nav Links */}
-        <div className="p-4 border-t border-[var(--border-color)] mt-auto flex-shrink-0">
+        {/* ── MIDDLE: Sessions List (scrolls independently) ── */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
+          {sessions.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)] text-center py-4">No chats yet. Start creating!</p>
+          ) : (
+            sessions.map(s => (
+              <SessionItem
+                key={s.id}
+                session={s}
+                isActive={s.id === activeSessionId}
+                onClick={() => loadSession(s.id)}
+                onDelete={deleteSession}
+              />
+            ))
+          )}
+        </div>
+
+        {/* ── BOTTOM: Nav Links (fixed, never shrinks) ── */}
+        <div className="flex-shrink-0 p-4 border-t border-[var(--border-color)]">
           <Link to="/dashboard" className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] text-sm transition-colors">
             📊 Dashboard
           </Link>
@@ -558,6 +569,14 @@ const LogoAgent = () => {
           </Link>
         </div>
       </div>
+
+      {/* ── Mobile/Tablet Sidebar Backdrop ── */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="sidebar-backdrop"
+        />
+      )}
 
       {/* ── Main Chat Area ── */}
       <div className="flex flex-col flex-1 min-w-0">
@@ -616,7 +635,7 @@ const LogoAgent = () => {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tell me about your brand, or ask about logo design..."
+              placeholder="Message BrandyBot..."
               className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition-all"
               style={{
                 background: 'var(--bg-input)',
