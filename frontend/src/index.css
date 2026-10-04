@@ -52,35 +52,35 @@
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: #ffffff;
-    --bg-card-hover: #f0f4ff;
+    --bg-card-hover: #f1f5f9;
     --bg-input: #f8f9fa;
     /* ── Text ── */
-    --text-primary: #1a1a2e;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
     /* ── Borders & Shadows ── */
     --border-color: #e2e8f0;
     --border-focus: #7C3AED;
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color: rgba(15, 23, 42, 0.08);
     /* ── Brand ── */
     --brand-primary: #7c3aed;
     --brand-secondary: #3b82f6;
     --brand-gradient: linear-gradient(to right, #7c3aed, #3b82f6);
     /* ── Navbar ── */
-    --nav-bg: rgba(248, 250, 252, 0.90);
+    --nav-bg: rgba(255, 255, 255, 0.94);
     /* ── Auth pages ── */
     --auth-bg: #f0f4ff;
     --auth-card-bg: rgba(255, 255, 255, 0.92);
     --auth-card-border: rgba(124, 58, 237, 0.2);
     --auth-input-bg: #ffffff;
     --auth-input-border: #d1d5db;
-    --auth-input-text: #1a1a2e;
+    --auth-input-text: #0f172a;
     --auth-google-bg: #ffffff;
     --auth-google-border: #d1d5db;
     --auth-google-text: #374151;
     --auth-google-hover: #f9fafb;
     --auth-divider: #e5e7eb;
-    --auth-divider-text: #9ca3af;
+    --auth-divider-text: #64748b;
     /* ── Accent / Status ── */
     --accent-success: #16a34a;
     --accent-warning: #d97706;
@@ -184,16 +184,45 @@ body {
    GLASS MORPHISM CARD
    ============================================================ */
 .glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    background: rgba(22, 33, 62, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="light"] .glass-card {
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(124, 58, 237, 0.15);
+    background: #ffffff;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+}
+
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .badge-pill {
+    background: rgba(124, 58, 237, 0.15);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    color: #c4b5fd;
+}
+
+[data-theme="light"] .badge-pill {
+    background: #f3e8ff;
+    border: 1px solid #d8b4fe;
+    color: #6b21a8;
 }
 
 /* ============================================================
@@ -221,6 +250,21 @@ body {
     50% {
         opacity: 0.6;
     }
+}
+
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
 }
 
 @keyframes slideInLeft {

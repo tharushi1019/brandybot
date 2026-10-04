@@ -139,6 +139,36 @@ if (process.env.OPENROUTER_API_KEY) {
     console.log("⚠️ OPENROUTER_API_KEY not found in environment.");
 }
 
+// Supported Groq models in priority order
+const GROQ_CANDIDATE_MODELS = [
+    process.env.GROQ_MODEL,
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "llama-3.3-70b-versatile"
+].filter(Boolean);
+
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct";
+
+const callGroqWithFallback = async (params) => {
+    let lastError = null;
+    for (const model of GROQ_CANDIDATE_MODELS) {
+        try {
+            return await groqClient.chat.completions.create({
+                ...params,
+                model
+            });
+        } catch (err) {
+            lastError = err;
+            if (err.status === 404 || err.status === 400 || (err.message && err.message.toLowerCase().includes("model"))) {
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastError;
+};
+
 // ============================================================
 // STARTUP API TESTING
 // ============================================================
@@ -170,11 +200,10 @@ const testAPIsOnStartup = async () => {
     if (groqClient) {
         try {
             console.log("⏳ Testing Groq API...");
-            await groqClient.chat.completions.create({
+            const testRes = await callGroqWithFallback({
                 messages: [{ role: "user", content: "Hello!" }],
-                model: "llama-3.3-70b-versatile",
             });
-            console.log("✅ Groq API check: SUCCESS");
+            console.log(`✅ Groq API check: SUCCESS (Model: ${testRes.model || 'active'})`);
             if (!activeApi) activeApi = "Groq";
         } catch (e) {
             console.error("❌ Groq API check: FAILED ->", e.message);
@@ -186,7 +215,7 @@ const testAPIsOnStartup = async () => {
             console.log("⏳ Testing OpenRouter API...");
             await openRouterClient.chat.completions.create({
                 messages: [{ role: "user", content: "Hello!" }],
-                model: "meta-llama/llama-3.3-70b-instruct:free",
+                model: OPENROUTER_MODEL,
             });
             console.log("✅ OpenRouter API check: SUCCESS");
             if (!activeApi) activeApi = "OpenRouter";
@@ -244,10 +273,7 @@ const generateResponse = async (prompt, history = []) => {
 
     if (groqClient) {
         try {
-            const completion = await groqClient.chat.completions.create({
-                messages,
-                model: "llama-3.3-70b-versatile",
-            });
+            const completion = await callGroqWithFallback({ messages });
             return completion.choices[0].message.content;
         } catch (error) {
             console.error("Groq Error in generateResponse:", error.message);
@@ -258,7 +284,7 @@ const generateResponse = async (prompt, history = []) => {
         try {
             const completion = await openRouterClient.chat.completions.create({
                 messages,
-                model: "meta-llama/llama-3.3-70b-instruct:free",
+                model: OPENROUTER_MODEL,
             });
             return completion.choices[0].message.content;
         } catch (error) {
@@ -360,9 +386,8 @@ RETURN ONLY THE JSON. NO MARKDOWN. NO EXTRA TEXT.
 
     if (groqClient) {
         try {
-            const completion = await groqClient.chat.completions.create({
+            const completion = await callGroqWithFallback({
                 messages,
-                model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
             return JSON.parse(completion.choices[0].message.content);
@@ -375,10 +400,10 @@ RETURN ONLY THE JSON. NO MARKDOWN. NO EXTRA TEXT.
         try {
             const completion = await openRouterClient.chat.completions.create({
                 messages,
-                model: "meta-llama/llama-3.3-70b-instruct:free",
+                model: OPENROUTER_MODEL,
             });
             const text = completion.choices[0].message.content;
-            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            const jsonText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonText);
         } catch (error) {
             console.error("OpenRouter Error generating prompt:", error.message);
@@ -496,9 +521,8 @@ Logo Font (from DB): ${brandData.logoFont || 'Not specified'}
 
     if (groqClient) {
         try {
-            const completion = await groqClient.chat.completions.create({
+            const completion = await callGroqWithFallback({
                 messages,
-                model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
             return JSON.parse(completion.choices[0].message.content);
@@ -511,10 +535,10 @@ Logo Font (from DB): ${brandData.logoFont || 'Not specified'}
         try {
             const completion = await openRouterClient.chat.completions.create({
                 messages,
-                model: "meta-llama/llama-3.3-70b-instruct:free",
+                model: OPENROUTER_MODEL,
             });
             const text = completion.choices[0].message.content;
-            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            const jsonText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonText);
         } catch (error) {
             console.error("OpenRouter Error generating guidelines:", error.message);
@@ -588,9 +612,8 @@ const generateLogoAgentReply = async ({ message, history = [], brandContext = {}
 
     if (groqClient) {
         try {
-            const completion = await groqClient.chat.completions.create({
+            const completion = await callGroqWithFallback({
                 messages,
-                model: "llama-3.3-70b-versatile",
                 response_format: { type: "json_object" }
             });
             return JSON.parse(completion.choices[0].message.content);
@@ -603,10 +626,10 @@ const generateLogoAgentReply = async ({ message, history = [], brandContext = {}
         try {
             const completion = await openRouterClient.chat.completions.create({
                 messages,
-                model: "meta-llama/llama-3.3-70b-instruct:free",
+                model: OPENROUTER_MODEL,
             });
             const text = completion.choices[0].message.content;
-            const jsonText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            const jsonText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonText);
         } catch (error) {
             console.error("OpenRouter Error generating Logo Agent Reply:", error.message);

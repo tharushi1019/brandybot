@@ -1,22 +1,65 @@
-import React, { useRef, useMemo } from "react";
-import { useTexture, Decal, Float, Text } from "@react-three/drei";
+import React, { useMemo, useState, useEffect } from "react";
+import { Decal, Float, Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
 // ─────────────────────────────────────────────────────────────────
-// IMPORTANT: All hooks MUST be called unconditionally (Rules of Hooks).
-// We always load a texture — if no logoUrl is provided we use a 1x1 
-// transparent fallback so the hook is always called.
+// Safe Texture Loader Hook
+// Loads texture with CORS support and graceful error handling.
+// Avoids breaking React Suspense or unmounting Canvas on network/CORS issues.
 // ─────────────────────────────────────────────────────────────────
+const textureCache = new Map();
 
-const TRANSPARENT_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+export function useSafeTexture(url) {
+  const [texture, setTexture] = useState(() => (url ? textureCache.get(url) || null : null));
+
+  useEffect(() => {
+    if (!url) {
+      setTexture(null);
+      return;
+    }
+
+    if (textureCache.has(url)) {
+      setTexture(textureCache.get(url));
+      return;
+    }
+
+    let isMounted = true;
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
+
+    loader.load(
+      url,
+      (loadedTexture) => {
+        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        loadedTexture.needsUpdate = true;
+        textureCache.set(url, loadedTexture);
+        if (isMounted) {
+          setTexture(loadedTexture);
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn("Could not load 3D texture:", err);
+        if (isMounted) {
+          setTexture(null);
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+
+  return texture;
+}
 
 /**
  * Procedural 3D Mug — premium ceramic cup
  */
 export function Mug({ logoUrl, color = "#ffffff", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
 
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
@@ -47,8 +90,8 @@ export function Mug({ logoUrl, color = "#ffffff", logoX = 0, logoY = 0, logoScal
         </mesh>
 
         {/* Mug Handle */}
-        <mesh position={[0.58, 0, 0]} castShadow>
-          <torusGeometry args={[0.28, 0.07, 16, 32, Math.PI]} />
+        <mesh position={[0.46, 0, 0]} scale={[0.9, 1.2, 1]} castShadow receiveShadow>
+          <torusGeometry args={[0.3, 0.065, 24, 48]} />
           <meshStandardMaterial color={color} roughness={0.12} metalness={0.08} />
         </mesh>
       </group>
@@ -57,28 +100,46 @@ export function Mug({ logoUrl, color = "#ffffff", logoX = 0, logoY = 0, logoScal
 }
 
 /**
- * Procedural 3D Business Card — foil-like premium finish
+ * Procedural 3D Business Card — premium foil-stamped luxury cardstock
  */
 export function BusinessCard({ logoUrl, brandName, color = "#ffffff", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
+
+  // Dynamic theme & accent calculation for realistic contrast
+  const { stripeColor, textPrimary, textSecondary } = useMemo(() => {
+    const c = new THREE.Color(color);
+    const luminance = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    const isDark = luminance < 0.45;
+
+    // Metallic foil accent coordinating with the chosen palette
+    const stripe = isDark
+      ? c.clone().offsetHSL(0, 0.15, 0.22)
+      : c.clone().multiplyScalar(0.72);
+
+    return {
+      stripeColor: stripe,
+      textPrimary: isDark ? "#ffffff" : "#1a1a2e",
+      textSecondary: isDark ? "#cbd5e1" : "#64748b",
+    };
+  }, [color]);
 
   return (
     <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.5}>
       <group {...props}>
-        {/* Card base */}
+        {/* Card base — premium heavyweight cardstock */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[3.5, 2, 0.04]} />
           <meshPhysicalMaterial
             color={color}
-            roughness={0.2}
-            metalness={0.1}
-            clearcoat={0.8}
-            clearcoatRoughness={0.1}
+            roughness={0.35}
+            metalness={0.05}
+            clearcoat={0.3}
+            clearcoatRoughness={0.2}
           />
           {hasLogo && (
             <Decal
-              position={[-0.9 + logoX * 0.6, 0.2 + logoY * 0.6, 0.025]}
+              position={[-0.9 + logoX * 0.6, 0.15 + logoY * 0.6, 0.025]}
               rotation={[0, 0, 0]}
               scale={[0.75 * logoScale, 0.75 * logoScale, 1]}
             >
@@ -93,32 +154,41 @@ export function BusinessCard({ logoUrl, brandName, color = "#ffffff", logoX = 0,
           )}
         </mesh>
 
-        {/* Accent stripe */}
-        <mesh position={[1.4, 0, 0.022]}>
-          <boxGeometry args={[0.7, 2, 0.005]} />
+        {/* Dynamic Metallic Foil Accent Stripe (Right Side) */}
+        <mesh position={[1.45, 0, 0.022]}>
+          <boxGeometry args={[0.6, 2, 0.005]} />
           <meshPhysicalMaterial
-            color="#7C3AED"
-            roughness={0.1}
-            metalness={0.3}
+            color={stripeColor}
+            roughness={0.15}
+            metalness={0.85}
             clearcoat={1}
+            clearcoatRoughness={0.1}
           />
+        </mesh>
+
+        {/* Subtle Decorative Foil Hairline */}
+        <mesh position={[0.25, -0.18, 0.023]}>
+          <boxGeometry args={[1.5, 0.008, 0.002]} />
+          <meshStandardMaterial color={stripeColor} metalness={0.9} roughness={0.2} />
         </mesh>
 
         {/* Brand Name Text */}
         <Text
-          position={[0.3, -0.1, 0.03]}
+          position={[0.25, 0.08, 0.03]}
           fontSize={0.22}
-          color="#222222"
+          color={textPrimary}
           anchorX="left"
           anchorY="middle"
-          maxWidth={1.5}
+          maxWidth={1.6}
         >
           {brandName || "Your Brand"}
         </Text>
+
+        {/* Subtitle / Contact Information */}
         <Text
-          position={[0.3, -0.45, 0.03]}
-          fontSize={0.12}
-          color="#888888"
+          position={[0.25, -0.36, 0.03]}
+          fontSize={0.11}
+          color={textSecondary}
           anchorX="left"
           anchorY="middle"
         >
@@ -133,8 +203,8 @@ export function BusinessCard({ logoUrl, brandName, color = "#ffffff", logoX = 0,
  * Highly Realistic 3D T-Shirt — crew collar, hem lines & sleeve cuffs
  */
 export function SimpleShirt({ logoUrl, color = "#222222", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
 
   const shirtShape = useMemo(() => {
     const shape = new THREE.Shape();
@@ -189,11 +259,6 @@ export function SimpleShirt({ logoUrl, color = "#222222", logoX = 0, logoY = 0, 
           )}
         </mesh>
 
-        {/* Realistic 3D Crew Neck Collar */}
-        <mesh position={[0, 1.35, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.3, 0.05, 16, 32]} />
-          <meshStandardMaterial color={color} roughness={0.8} />
-        </mesh>
 
         {/* 3D Sleeve cuffs detail */}
         <mesh position={[-1.48, 0.65, 0.09]} rotation={[0, 0, -Math.PI / 6]}>
@@ -209,130 +274,93 @@ export function SimpleShirt({ logoUrl, color = "#222222", logoX = 0, logoY = 0, 
   );
 }
 
+// Preload the Hoodie GLB
+useGLTF.preload("/hoodie.glb");
+
 /**
- * Highly Realistic 3D Hoodie — pullover hoodie with pouch, cuffs & drawstrings
+ * 3D Realistic Hoodie — loaded from glb with surface-aligned chest logo
  */
 export function Hoodie({ logoUrl, color = "#333333", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const { scene } = useGLTF("/hoodie.glb");
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
 
-  const hoodieShape = useMemo(() => {
-    const shape = new THREE.Shape();
-    // Body
-    shape.moveTo(-1.1, -1.6);
-    shape.lineTo(1.1, -1.6);
-    shape.lineTo(1.1, 0.3);
-    // Right arm
-    shape.lineTo(1.7, 0.1);
-    shape.lineTo(2.0, -0.5);
-    shape.lineTo(1.75, -0.55);
-    shape.lineTo(1.45, 0.05);
-    // Right shoulder
-    shape.lineTo(1.1, 0.5);
-    // Hood right
-    shape.lineTo(0.4, 1.5);
-    shape.quadraticCurveTo(0, 1.85, -0.4, 1.5);
-    // Hood left
-    shape.lineTo(-1.1, 0.5);
-    shape.lineTo(-1.45, 0.05);
-    shape.lineTo(-1.75, -0.55);
-    shape.lineTo(-2.0, -0.5);
-    shape.lineTo(-1.7, 0.1);
-    shape.lineTo(-1.1, 0.3);
-    shape.lineTo(-1.1, -1.6);
-    return shape;
-  }, []);
-
-  const extrudeSettings = useMemo(
-    () => ({
-      depth: 0.2,
-      bevelEnabled: true,
-      bevelThickness: 0.04,
-      bevelSize: 0.04,
-      bevelSegments: 4,
-    }),
-    []
-  );
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material = child.material.clone();
+          child.material.color = new THREE.Color(color);
+          child.material.roughness = 0.85;
+          child.material.metalness = 0.05;
+        }
+      }
+    });
+    return clone;
+  }, [scene, color]);
 
   return (
     <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.4}>
       <group {...props}>
-        {/* Extruded body */}
-        <mesh castShadow receiveShadow>
-          <extrudeGeometry args={[hoodieShape, extrudeSettings]} />
-          <meshStandardMaterial color={color} roughness={0.85} metalness={0} />
-          {hasLogo && (
-            <Decal
-              position={[0 + logoX * 0.6, 0.1 + logoY * 0.7, 0.22]}
-              rotation={[0, 0, 0]}
-              scale={[0.6 * logoScale, 0.6 * logoScale, 1]}
-            >
-              <meshBasicMaterial
-                map={logoTexture}
-                transparent
-                polygonOffset
-                polygonOffsetFactor={-10}
-                depthWrite={false}
-              />
-            </Decal>
-          )}
-        </mesh>
-
-        {/* kangaroo front pocket */}
-        <mesh position={[0, -0.72, 0.16]} castShadow>
-          <boxGeometry args={[0.9, 0.48, 0.09]} />
-          <meshStandardMaterial color={color} roughness={0.85} />
-        </mesh>
-
-        {/* Bottom hem ribbing */}
-        <mesh position={[0, -1.6, 0.1]}>
-          <boxGeometry args={[2.24, 0.15, 0.22]} />
-          <meshStandardMaterial color={color} roughness={0.88} />
-        </mesh>
-
-        {/* Sleeve cuffs ribbing */}
-        <mesh position={[-1.75, -0.45, 0.1]} rotation={[0, 0, Math.PI / 8]}>
-          <boxGeometry args={[0.26, 0.12, 0.24]} />
-          <meshStandardMaterial color={color} roughness={0.88} />
-        </mesh>
-        <mesh position={[1.75, -0.45, 0.1]} rotation={[0, 0, -Math.PI / 8]}>
-          <boxGeometry args={[0.26, 0.12, 0.24]} />
-          <meshStandardMaterial color={color} roughness={0.88} />
-        </mesh>
-
-        {/* Drawstrings */}
-        <mesh position={[-0.15, 1.15, 0.12]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.65, 8]} />
-          <meshStandardMaterial color={color} roughness={0.9} />
-        </mesh>
-        <mesh position={[0.15, 1.15, 0.12]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.65, 8]} />
-          <meshStandardMaterial color={color} roughness={0.9} />
-        </mesh>
+        <primitive object={clonedScene} scale={1.8} position={[0, -2.44, 0]} />
+        {hasLogo && (
+          <mesh
+            position={[0 + logoX * 0.45, 0.14 + logoY * 0.45, 0.295]}
+            rotation={[-0.18, 0, 0]}
+            renderOrder={10}
+          >
+            <planeGeometry args={[0.52 * logoScale, 0.52 * logoScale]} />
+            <meshBasicMaterial
+              map={logoTexture}
+              transparent
+              depthWrite={false}
+              polygonOffset
+              polygonOffsetFactor={-10}
+            />
+          </mesh>
+        )}
       </group>
     </Float>
   );
 }
 
+
 /**
- * Procedural 3D Notebook / Journal — hardcover book
+ * Procedural 3D Notebook / Journal — hardcover book with vertical strap & ribbon bookmark
  */
 export function Notebook({ logoUrl, color = "#1a1a2e", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
+
+  // Dynamic strap and ribbon bookmark colors matching the selected palette
+  const { strapColor, bookmarkColor } = useMemo(() => {
+    const c = new THREE.Color(color);
+    const strap = c.clone().multiplyScalar(0.5);
+    const bookmark = c.clone().offsetHSL(0, 0.2, 0.15);
+    return { strapColor: strap, bookmarkColor: bookmark };
+  }, [color]);
 
   return (
     <Float speed={1.8} rotationIntensity={0.4} floatIntensity={0.5}>
       <group {...props} rotation={[0.3, -0.3, 0]}>
-        {/* Cover */}
+        {/* Hardcover Front */}
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[2.2, 3, 0.15]} />
-          <meshStandardMaterial color={color} roughness={0.6} metalness={0.05} />
+          <boxGeometry args={[2.2, 3.0, 0.08]} />
+          <meshPhysicalMaterial
+            color={color}
+            roughness={0.4}
+            metalness={0.05}
+            clearcoat={0.25}
+            clearcoatRoughness={0.3}
+          />
           {hasLogo && (
             <Decal
-              position={[0 + logoX * 0.6, 0.3 + logoY * 0.9, 0.08]}
+              position={[0 + logoX * 0.5, 0.35 + logoY * 0.7, 0.045]}
               rotation={[0, 0, 0]}
-              scale={[1.0 * logoScale, 1.0 * logoScale, 1]}
+              scale={[0.9 * logoScale, 0.9 * logoScale, 1]}
             >
               <meshBasicMaterial
                 map={logoTexture}
@@ -345,22 +373,44 @@ export function Notebook({ logoUrl, color = "#1a1a2e", logoX = 0, logoY = 0, log
           )}
         </mesh>
 
-        {/* Pages block */}
-        <mesh position={[0, 0, -0.16]}>
-          <boxGeometry args={[2.1, 2.92, 0.22]} />
-          <meshStandardMaterial color="#f5f5f0" roughness={0.95} />
+        {/* Hardcover Back */}
+        <mesh position={[0, 0, -0.22]} castShadow receiveShadow>
+          <boxGeometry args={[2.2, 3.0, 0.08]} />
+          <meshPhysicalMaterial
+            color={color}
+            roughness={0.4}
+            metalness={0.05}
+            clearcoat={0.25}
+          />
         </mesh>
 
-        {/* Spine */}
-        <mesh position={[-1.18, 0, -0.08]}>
-          <boxGeometry args={[0.08, 3, 0.38]} />
-          <meshStandardMaterial color={color} roughness={0.5} metalness={0.1} />
+        {/* Inner Pages Block */}
+        <mesh position={[0.02, 0, -0.11]}>
+          <boxGeometry args={[2.08, 2.9, 0.18]} />
+          <meshStandardMaterial color="#f8f6f0" roughness={0.9} />
         </mesh>
 
-        {/* Elastic strap */}
-        <mesh position={[0, 0, 0.09]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.03, 0.03, 2.1, 8]} />
-          <meshStandardMaterial color="#7C3AED" roughness={0.4} />
+        {/* Curved Leather Spine */}
+        <mesh position={[-1.1, 0, -0.11]} castShadow>
+          <cylinderGeometry args={[0.13, 0.13, 3.0, 16, 1, false, Math.PI / 2, Math.PI]} />
+          <meshPhysicalMaterial
+            color={color}
+            roughness={0.4}
+            metalness={0.05}
+            clearcoat={0.25}
+          />
+        </mesh>
+
+        {/* Vertical Moleskine-style Elastic Closure Strap (Right edge) */}
+        <mesh position={[0.75, 0, 0.055]} castShadow>
+          <boxGeometry args={[0.12, 3.02, 0.015]} />
+          <meshStandardMaterial color={strapColor} roughness={0.8} />
+        </mesh>
+
+        {/* Ribbon Bookmark Tail (Draping below pages) */}
+        <mesh position={[0.2, -1.6, -0.11]} rotation={[0.1, 0, -0.1]}>
+          <boxGeometry args={[0.08, 0.35, 0.01]} />
+          <meshStandardMaterial color={bookmarkColor} roughness={0.3} metalness={0.2} />
         </mesh>
       </group>
     </Float>
@@ -371,8 +421,21 @@ export function Notebook({ logoUrl, color = "#1a1a2e", logoX = 0, logoY = 0, log
  * Procedural 3D Water Bottle — slim premium metal hydro flask
  */
 export function WaterBottle({ logoUrl, color = "#2d3748", logoX = 0, logoY = 0, logoScale = 1, ...props }) {
-  const logoTexture = useTexture(logoUrl || TRANSPARENT_PIXEL);
-  const hasLogo = !!logoUrl;
+  const logoTexture = useSafeTexture(logoUrl);
+  const hasLogo = Boolean(logoUrl && logoTexture);
+
+  // Compute complementary lighter body shade and darker cap/nozzle shades
+  const { bodyColor, capColor, nozzleColor } = useMemo(() => {
+    const base = new THREE.Color(color);
+    const bColor = base.clone().offsetHSL(0, 0, 0.04);
+    const cColor = base.clone().multiplyScalar(0.65);
+    const nColor = base.clone().multiplyScalar(0.45);
+    return {
+      bodyColor: bColor,
+      capColor: cColor,
+      nozzleColor: nColor,
+    };
+  }, [color]);
 
   return (
     <Float speed={2} rotationIntensity={0.3} floatIntensity={0.6}>
@@ -381,7 +444,7 @@ export function WaterBottle({ logoUrl, color = "#2d3748", logoX = 0, logoY = 0, 
         <mesh castShadow receiveShadow position={[0, -0.1, 0]}>
           <cylinderGeometry args={[0.38, 0.38, 2.2, 64]} />
           <meshPhysicalMaterial
-            color={color}
+            color={bodyColor}
             roughness={0.15}
             metalness={0.7}
             clearcoat={0.9}
@@ -404,16 +467,16 @@ export function WaterBottle({ logoUrl, color = "#2d3748", logoX = 0, logoY = 0, 
           )}
         </mesh>
 
-        {/* Cap */}
-        <mesh position={[0, 1.25, 0]} castShadow>
-          <cylinderGeometry args={[0.22, 0.38, 0.3, 32]} />
-          <meshStandardMaterial color="#7C3AED" roughness={0.3} metalness={0.2} />
+        {/* Dynamic Darker Cap */}
+        <mesh position={[0, 1.12, 0]} castShadow>
+          <cylinderGeometry args={[0.22, 0.38, 0.28, 32]} />
+          <meshStandardMaterial color={capColor} roughness={0.3} metalness={0.25} />
         </mesh>
 
-        {/* Nozzle */}
-        <mesh position={[0, 1.42, 0]}>
-          <cylinderGeometry args={[0.1, 0.12, 0.1, 16]} />
-          <meshStandardMaterial color="#5b21b6" roughness={0.3} />
+        {/* Dynamic Deep Accent Nozzle */}
+        <mesh position={[0, 1.30, 0]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.12, 16]} />
+          <meshStandardMaterial color={nozzleColor} roughness={0.3} metalness={0.3} />
         </mesh>
       </group>
     </Float>
