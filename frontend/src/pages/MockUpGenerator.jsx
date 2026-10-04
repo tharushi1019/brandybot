@@ -140,61 +140,229 @@ const drawBusinessCard = (ctx, logoImg, brandName, W, H) => {
 };
 
 const drawTShirt = (ctx, logoImg, brandName, W, H) => {
-  ctx.fillStyle = "#2d2d2d";
+  // 1. Studio backdrop: deep navy-purple vignette
+  const bgGrad = ctx.createRadialGradient(W / 2, H / 2 - 20, 50, W / 2, H / 2, 380);
+  bgGrad.addColorStop(0, "#1e1b2e");
+  bgGrad.addColorStop(1, "#0f0d1a");
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // T-shirt silhouette
-  ctx.fillStyle = "#3d3d3d";
-  ctx.beginPath();
-  ctx.moveTo(110, 80);
-  ctx.lineTo(0, 148);
-  ctx.lineTo(60, 168);
-  ctx.lineTo(62, 542);
-  ctx.lineTo(458, 542);
-  ctx.lineTo(460, 168);
-  ctx.lineTo(520, 148);
-  ctx.lineTo(410, 80);
-  ctx.quadraticCurveTo(360, 58, 260, 62);
-  ctx.quadraticCurveTo(160, 58, 110, 80);
-  ctx.closePath();
-  ctx.fill();
+  // Subtle studio grid / soft floor gradient
+  const floorGrad = ctx.createLinearGradient(0, H - 120, 0, H);
+  floorGrad.addColorStop(0, "rgba(0,0,0,0)");
+  floorGrad.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, H - 120, W, 120);
 
-  // Subtle fabric texture lines
-  ctx.globalAlpha = 0.04;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1;
-  for (let y = 0; y < H; y += 8) {
+  // 2. Realistic Garment Soft Cast / Drop Shadow onto background
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+  ctx.shadowBlur = 32;
+  ctx.shadowOffsetY = 14;
+
+  // Path of the T-Shirt silhouette (natural curves, realistic drape, sleeve cuffs, curved hem)
+  const drawShirtPath = () => {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
+    ctx.moveTo(195, 88);
+    // Left shoulder slope
+    ctx.bezierCurveTo(155, 92, 100, 115, 62, 138);
+    // Left outer sleeve
+    ctx.bezierCurveTo(45, 148, 24, 185, 12, 222);
+    // Left sleeve cuff / opening
+    ctx.bezierCurveTo(28, 236, 52, 248, 68, 252);
+    // Left underarm / armpit curve
+    ctx.bezierCurveTo(82, 230, 92, 210, 96, 228);
+    // Left body side (subtle waist contour)
+    ctx.bezierCurveTo(94, 290, 98, 420, 92, 545);
+    // Bottom hem curve (natural gentle downward curve)
+    ctx.bezierCurveTo(180, 560, 340, 560, 428, 545);
+    // Right body side
+    ctx.bezierCurveTo(422, 420, 426, 290, 424, 228);
+    // Right underarm / armpit curve
+    ctx.bezierCurveTo(428, 210, 438, 230, 452, 252);
+    // Right sleeve cuff
+    ctx.bezierCurveTo(468, 248, 492, 236, 508, 222);
+    // Right outer sleeve
+    ctx.bezierCurveTo(496, 185, 475, 148, 458, 138);
+    // Right shoulder slope
+    ctx.bezierCurveTo(420, 115, 365, 92, 325, 88);
+    // Front collar dip
+    ctx.bezierCurveTo(295, 138, 225, 138, 195, 88);
+    ctx.closePath();
+  };
 
-  // White circle behind logo
-  const cx = W / 2, cy = 290;
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.2)";
-  ctx.shadowBlur = 24;
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.beginPath();
-  ctx.arc(cx, cy, 100, 0, Math.PI * 2);
+  // Base fabric fill with shadow
+  ctx.fillStyle = "#22242a";
+  drawShirtPath();
   ctx.fill();
   ctx.restore();
 
-  // Logo
-  const logoSize = 160;
+  // 3. Inner Collar Back & Brand Size Tag
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = 14;
-  ctx.drawImage(logoImg, cx - logoSize / 2, cy - logoSize / 2, logoSize, logoSize);
+  ctx.beginPath();
+  ctx.moveTo(195, 88);
+  ctx.bezierCurveTo(225, 62, 295, 62, 325, 88);
+  ctx.bezierCurveTo(295, 122, 225, 122, 195, 88);
+  ctx.closePath();
+  const innerGrad = ctx.createLinearGradient(0, 60, 0, 120);
+  innerGrad.addColorStop(0, "#111215");
+  innerGrad.addColorStop(1, "#1c1d23");
+  ctx.fillStyle = innerGrad;
+  ctx.fill();
+
+  // Premium inside woven/printed apparel label tag
+  ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+  ctx.font = "bold 9px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText((brandName || "BRANDYBOT").toUpperCase(), 260, 84);
+  ctx.font = "7px Inter, Arial, sans-serif";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+  ctx.fillText("100% COMBED COTTON • M", 260, 94);
   ctx.restore();
 
-  // Brand name under logo
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  // 4. Fabric Shading & Natural Volume (Chest Highlight & Drape Folds)
+  ctx.save();
+  drawShirtPath();
+  ctx.clip();
+
+  // 4a. Overall 3D Body Lighting (Soft studio key light from top-left)
+  const bodyLight = ctx.createLinearGradient(100, 100, 420, 500);
+  bodyLight.addColorStop(0, "#333742");
+  bodyLight.addColorStop(0.35, "#252830");
+  bodyLight.addColorStop(0.7, "#1e2026");
+  bodyLight.addColorStop(1, "#16171c");
+  ctx.fillStyle = bodyLight;
+  ctx.fill();
+
+  // 4b. Chest Volume Highlight
+  const chestLight = ctx.createRadialGradient(260, 270, 20, 260, 270, 160);
+  chestLight.addColorStop(0, "rgba(255, 255, 255, 0.08)");
+  chestLight.addColorStop(0.6, "rgba(255, 255, 255, 0.02)");
+  chestLight.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = chestLight;
+  ctx.fillRect(0, 0, W, H);
+
+  // 4c. Soft Fold Creases / Drape Shadows
+  const foldL = ctx.createLinearGradient(70, 230, 160, 310);
+  foldL.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+  foldL.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = foldL;
+  ctx.beginPath();
+  ctx.moveTo(96, 228);
+  ctx.bezierCurveTo(120, 260, 150, 300, 165, 330);
+  ctx.bezierCurveTo(150, 315, 120, 275, 96, 228);
+  ctx.fill();
+
+  const foldR = ctx.createLinearGradient(450, 230, 360, 310);
+  foldR.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+  foldR.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = foldR;
+  ctx.beginPath();
+  ctx.moveTo(424, 228);
+  ctx.bezierCurveTo(400, 260, 370, 300, 355, 330);
+  ctx.bezierCurveTo(370, 315, 400, 275, 424, 228);
+  ctx.fill();
+
+  // Side flank shadow gradients
+  const flankL = ctx.createLinearGradient(92, 0, 150, 0);
+  flankL.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+  flankL.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = flankL;
+  ctx.fillRect(92, 220, 60, 340);
+
+  const flankR = ctx.createLinearGradient(428, 0, 370, 0);
+  flankR.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+  flankR.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = flankR;
+  ctx.fillRect(368, 220, 60, 340);
+
+  // Sleeve Seams & Hem Creases
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(115, 105);
+  ctx.bezierCurveTo(100, 150, 95, 190, 96, 228);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(405, 105);
+  ctx.bezierCurveTo(420, 150, 425, 190, 424, 228);
+  ctx.stroke();
+
+  // Sleeve hem stitch lines
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+  ctx.setLineDash([3, 2]);
+  ctx.beginPath();
+  ctx.moveTo(22, 218);
+  ctx.lineTo(60, 240);
+  ctx.moveTo(498, 218);
+  ctx.lineTo(460, 240);
+  // Bottom hem double stitch
+  ctx.moveTo(98, 536);
+  ctx.bezierCurveTo(180, 551, 340, 551, 422, 536);
+  ctx.moveTo(98, 541);
+  ctx.bezierCurveTo(180, 556, 340, 556, 422, 541);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Fine fabric weave texture
+  ctx.globalAlpha = 0.035;
+  ctx.fillStyle = "#ffffff";
+  for (let y = 100; y < 560; y += 4) {
+    ctx.fillRect(90, y, 340, 1);
+  }
+  ctx.globalAlpha = 1.0;
+
+  ctx.restore();
+
+  // 5. Ribbed Crewneck Collar Band (Outer)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(195, 88);
+  ctx.bezierCurveTo(225, 138, 295, 138, 325, 88);
+  ctx.bezierCurveTo(300, 148, 220, 148, 195, 88);
+  ctx.closePath();
+  const collarGrad = ctx.createLinearGradient(195, 88, 325, 148);
+  collarGrad.addColorStop(0, "#3a3e4b");
+  collarGrad.addColorStop(0.5, "#2a2d36");
+  collarGrad.addColorStop(1, "#21232b");
+  ctx.fillStyle = collarGrad;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  // 6. Direct-to-Garment Printed Logo & Brand Name
+  const cx = W / 2;
+  const cy = 295;
+  const logoSize = 145;
+  const lx = cx - logoSize / 2;
+  const ly = cy - logoSize / 2;
+
+  if (logoImg) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
+    ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
+    ctx.restore();
+  }
+
+  // Brand Name
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  ctx.fillStyle = "rgba(241, 245, 249, 0.95)";
   ctx.font = "bold 18px Inter, Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(brandName || "Your Brand", cx, cy + logoSize / 2 + 32);
+  ctx.fillText(brandName || "Your Brand", cx, ly + logoSize + 28);
+
+  ctx.fillStyle = "rgba(148, 163, 184, 0.75)";
+  ctx.font = "500 11px Inter, Arial, sans-serif";
+  ctx.fillText("PREMIUM APPAREL", cx, ly + logoSize + 46);
+  ctx.restore();
 };
 
 const drawInstagram = (ctx, logoImg, brandName, W, H) => {
@@ -268,72 +436,254 @@ const drawInstagram = (ctx, logoImg, brandName, W, H) => {
 };
 
 const drawMug = (ctx, logoImg, brandName, W, H) => {
-  ctx.fillStyle = "#f5f0eb";
+  // 1. Studio backdrop: dark premium product studio (brand-unified)
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, "#0f0c29");
+  bgGrad.addColorStop(0.55, "#16103a");
+  bgGrad.addColorStop(1, "#0b0921");
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // Mug body shadow
+  // Dark surface with subtle purple reflection
+  const tableY = 285;
+  const tableGrad = ctx.createLinearGradient(0, tableY, 0, H);
+  tableGrad.addColorStop(0, "rgba(124, 58, 237, 0.06)");
+  tableGrad.addColorStop(0.2, "rgba(90, 40, 180, 0.04)");
+  tableGrad.addColorStop(1, "rgba(40, 15, 80, 0.1)");
+  ctx.fillStyle = tableGrad;
+  ctx.fillRect(0, tableY, W, H - tableY);
+
+  // Purple studio spotlight glow behind mug
+  const spotGrad = ctx.createRadialGradient(232, 215, 30, 232, 215, 210);
+  spotGrad.addColorStop(0, "rgba(124, 58, 237, 0.22)");
+  spotGrad.addColorStop(0.5, "rgba(90, 40, 180, 0.08)");
+  spotGrad.addColorStop(1, "rgba(124, 58, 237, 0)");
+  ctx.fillStyle = spotGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Mug Geometry Setup
+  const mugX = 130;       // left edge of cylinder
+  const mugW = 205;       // width of cylinder
+  const mugRight = mugX + mugW; // 335
+  const mugTop = 100;     // top rim center Y
+  const mugBottom = 330;  // bottom base center Y
+  const rimRx = mugW / 2; // 102.5
+  const rimRy = 22;       // vertical radius of rim ellipse
+  const cx = mugX + rimRx;// 232.5
+
+  // 2. Realistic Multi-layered Shadows on dark tabletop
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.18)";
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 8;
-  ctx.fillStyle = "#ffffff";
+  const castGrad = ctx.createRadialGradient(cx + 40, mugBottom + 12, 10, cx + 55, mugBottom + 12, 140);
+  castGrad.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+  castGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.22)");
+  castGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = castGrad;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(90, 50, 320, 300, 20);
-  else ctx.rect(90, 50, 320, 300);
+  ctx.ellipse(cx + 50, mugBottom + 14, 130, 24, 0.05, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Tight dark contact shadow under base
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.beginPath();
+  ctx.ellipse(cx, mugBottom + 2, rimRx - 8, 9, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Mug body border
-  ctx.strokeStyle = "#e5ddd6";
+  // 3. Ceramic C-Handle (drawn behind cylinder edge, looping out to right)
+  const hTop = 135;
+  const hBottom = 285;
+  const hOuterX = 425;
+  const hInnerX = 385;
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 4;
+  ctx.shadowOffsetY = 4;
+
+  ctx.beginPath();
+  ctx.moveTo(mugRight - 10, hTop);
+  ctx.bezierCurveTo(mugRight + 70, hTop - 12, hOuterX, hTop + 35, hOuterX, (hTop + hBottom) / 2);
+  ctx.bezierCurveTo(hOuterX, hBottom - 35, mugRight + 70, hBottom + 12, mugRight - 10, hBottom);
+  ctx.bezierCurveTo(mugRight + 45, hBottom - 10, hInnerX, hBottom - 40, hInnerX, (hTop + hBottom) / 2);
+  ctx.bezierCurveTo(hInnerX, hTop + 40, mugRight + 45, hTop + 10, mugRight - 10, hTop);
+  ctx.closePath();
+
+  const handleGrad = ctx.createLinearGradient(mugRight, hTop, hOuterX, hBottom);
+  handleGrad.addColorStop(0, "#ffffff");
+  handleGrad.addColorStop(0.2, "#f8f6f2");
+  handleGrad.addColorStop(0.5, "#ece6dc");
+  handleGrad.addColorStop(0.85, "#d6cdc0");
+  handleGrad.addColorStop(1, "#f2ede5");
+  ctx.fillStyle = handleGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // Handle subtle outer highlight line
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(90, 50, 320, 300, 20);
-  else ctx.rect(90, 50, 320, 300);
+  ctx.moveTo(mugRight + 10, hTop);
+  ctx.bezierCurveTo(mugRight + 70, hTop - 10, hOuterX - 2, hTop + 35, hOuterX - 2, (hTop + hBottom) / 2);
   ctx.stroke();
 
-  // Handle
-  ctx.strokeStyle = "#d1c7be";
-  ctx.lineWidth = 18;
-  ctx.lineCap = "round";
+  // 4. Mug Body (Cylindrical form)
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(412, 200, 52, -Math.PI / 2.2, Math.PI / 2.2);
-  ctx.stroke();
+  ctx.moveTo(mugX, mugTop);
+  ctx.lineTo(mugX, mugBottom);
+  ctx.bezierCurveTo(mugX, mugBottom + rimRy, mugRight, mugBottom + rimRy, mugRight, mugBottom);
+  ctx.lineTo(mugRight, mugTop);
+  ctx.bezierCurveTo(mugRight, mugTop - rimRy, mugX, mugTop - rimRy, mugX, mugTop);
+  ctx.closePath();
 
-  // Purple accent top band
-  ctx.fillStyle = "#7C3AED";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(90, 50, 320, 32, [20, 20, 0, 0]);
-  else ctx.fillRect(90, 50, 320, 32);
+  // High-gloss Ceramic Cylinder Shading
+  const mugGrad = ctx.createLinearGradient(mugX, 0, mugRight, 0);
+  mugGrad.addColorStop(0, "#dfdad0");
+  mugGrad.addColorStop(0.08, "#f2eee7");
+  mugGrad.addColorStop(0.22, "#ffffff");
+  mugGrad.addColorStop(0.38, "#ffffff");
+  mugGrad.addColorStop(0.65, "#f0ece4");
+  mugGrad.addColorStop(0.88, "#d8d1c5");
+  mugGrad.addColorStop(1, "#c8c0b2");
+  ctx.fillStyle = mugGrad;
   ctx.fill();
 
-  // Logo
-  const logoSize = 140;
-  const logoX = 90 + (320 - logoSize) / 2;
-  const logoY = 50 + 32 + (300 - 32 - logoSize) / 2;
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.1)";
-  ctx.shadowBlur = 8;
-  ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+  // Vertical glaze sheen streak
+  const sheenGrad = ctx.createLinearGradient(mugX + 40, 0, mugX + 75, 0);
+  sheenGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+  sheenGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.65)");
+  sheenGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = sheenGrad;
+  ctx.fillRect(mugX + 40, mugTop, 35, mugBottom - mugTop + rimRy);
+
+  // Bottom base curve ceramic rim shadow
+  const baseGrad = ctx.createLinearGradient(0, mugBottom - 10, 0, mugBottom + rimRy);
+  baseGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+  baseGrad.addColorStop(1, "rgba(0, 0, 0, 0.12)");
+  ctx.fillStyle = baseGrad;
+  ctx.beginPath();
+  ctx.moveTo(mugX, mugBottom);
+  ctx.bezierCurveTo(mugX, mugBottom + rimRy, mugRight, mugBottom + rimRy, mugRight, mugBottom);
+  ctx.lineTo(mugRight, mugBottom - 8);
+  ctx.bezierCurveTo(mugRight, mugBottom + rimRy - 8, mugX, mugBottom + rimRy - 8, mugX, mugBottom - 8);
+  ctx.closePath();
+  ctx.fill();
+
   ctx.restore();
 
-  // Brand name
-  ctx.fillStyle = "#374151";
-  ctx.font = "bold 17px Inter, Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(brandName || "Your Brand", W / 2 - 30, H - 48);
+  // 5. Mug Interior & Fresh Hot Coffee
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, mugTop, rimRx, rimRy, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ebe6de";
+  ctx.fill();
 
-  // Coffee bean decorations
-  ctx.fillStyle = "#a97c50";
-  const beans = [[470, 280], [490, 310], [455, 320]];
-  beans.forEach(([bx, by]) => {
+  // Inner rim cavity (shadow inside mug)
+  const innerRx = rimRx - 7;
+  const innerRy = rimRy - 3.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, mugTop + 2, innerRx, innerRy, 0, 0, Math.PI * 2);
+  const innerWallGrad = ctx.createLinearGradient(0, mugTop - rimRy, 0, mugTop + rimRy + 10);
+  innerWallGrad.addColorStop(0, "#736a5e");
+  innerWallGrad.addColorStop(0.5, "#a89f92");
+  innerWallGrad.addColorStop(1, "#dcd6cb");
+  ctx.fillStyle = innerWallGrad;
+  ctx.fill();
+
+  // Liquid Coffee Surface
+  const liquidY = mugTop + 6;
+  const liquidRx = innerRx - 4;
+  const liquidRy = innerRy - 3;
+  ctx.beginPath();
+  ctx.ellipse(cx, liquidY, liquidRx, liquidRy, 0, 0, Math.PI * 2);
+  const coffeeGrad = ctx.createRadialGradient(cx - 20, liquidY - 2, 5, cx, liquidY, liquidRx);
+  coffeeGrad.addColorStop(0, "#3d2112");
+  coffeeGrad.addColorStop(0.65, "#25140b");
+  coffeeGrad.addColorStop(0.92, "#180d07");
+  coffeeGrad.addColorStop(1, "#7d4a25");
+  ctx.fillStyle = coffeeGrad;
+  ctx.fill();
+
+  // Specular light reflection glint on coffee liquid surface
+  ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.beginPath();
+  ctx.ellipse(cx - 32, liquidY - 3, 14, 3, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crisp porcelain front-rim highlight edge
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(cx, mugTop + 1, rimRx - 1, rimRy - 1, 0, Math.PI * 0.1, Math.PI * 0.9);
+  ctx.stroke();
+  ctx.restore();
+
+  // 6. Ceramic Decal Logo & Typography Printed on Mug Body
+  const logoSize = 105;
+  const logoCenterY = 222;
+  const lx = cx - logoSize / 2;
+  const ly = logoCenterY - logoSize / 2;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(mugX + 4, mugTop + 8);
+  ctx.lineTo(mugX + 4, mugBottom - 2);
+  ctx.bezierCurveTo(mugX + 4, mugBottom + rimRy - 2, mugRight - 4, mugBottom + rimRy - 2, mugRight - 4, mugBottom - 2);
+  ctx.lineTo(mugRight - 4, mugTop + 8);
+  ctx.bezierCurveTo(mugRight - 4, mugTop + rimRy, mugX + 4, mugTop + rimRy, mugX + 4, mugTop + 8);
+  ctx.closePath();
+  ctx.clip();
+
+  if (logoImg) {
     ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(Math.PI / 4);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
     ctx.restore();
-  });
+  }
+
+  // Glaze shine overlay over logo
+  const logoGloss = ctx.createLinearGradient(mugX + 40, 0, mugX + 75, 0);
+  logoGloss.addColorStop(0, "rgba(255, 255, 255, 0)");
+  logoGloss.addColorStop(0.5, "rgba(255, 255, 255, 0.28)");
+  logoGloss.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = logoGloss;
+  ctx.fillRect(lx - 20, ly - 10, logoSize + 40, logoSize + 50);
+
+  // Brand Name printed below logo (white on dark bg)
+  ctx.fillStyle = "rgba(241, 245, 249, 0.95)";
+  ctx.font = "bold 15px Inter, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(brandName || "Your Brand", cx, ly + logoSize + 22);
+
+  ctx.fillStyle = "rgba(148, 163, 184, 0.80)";
+  ctx.font = "600 9px Inter, Arial, sans-serif";
+  ctx.fillText("COFFEE & CO.", cx, ly + logoSize + 36);
+
+  ctx.restore();
+
+  // 7. Delicate Steam Wisps
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+  ctx.shadowBlur = 8;
+
+  ctx.beginPath();
+  ctx.moveTo(cx - 15, mugTop - 8);
+  ctx.bezierCurveTo(cx - 30, mugTop - 35, cx + 5, mugTop - 55, cx - 10, mugTop - 85);
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+  ctx.beginPath();
+  ctx.moveTo(cx + 15, mugTop - 6);
+  ctx.bezierCurveTo(cx + 35, mugTop - 32, cx + 5, mugTop - 50, cx + 22, mugTop - 75);
+  ctx.stroke();
+  ctx.restore();
 };
 
 const drawBillboard = (ctx, logoImg, brandName, W, H) => {
@@ -532,6 +882,16 @@ const generateMockupCanvas = (logoImg, template, brandName) => {
   if (renderer) {
     renderer(ctx, logoImg, brandName, template.width, template.height);
   }
+  // ── BrandyBot watermark (subtle, bottom-right) ──
+  ctx.save();
+  ctx.globalAlpha = 0.38;
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = 5;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${Math.round(template.height * 0.028)}px Inter, Arial, sans-serif`;
+  ctx.textAlign = "right";
+  ctx.fillText("⚡ brandybot.ai", template.width - 10, template.height - 8);
+  ctx.restore();
   return canvas.toDataURL("image/png");
 };
 
@@ -731,7 +1091,11 @@ export default function MockUpGenerator() {
 
       {/* Content */}
       {passedLogoUrl && (
-        <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 pb-28">
+        <div
+          className={`flex-1 max-w-6xl mx-auto w-full px-6 py-6 ${
+            viewMode === "2D" ? "pb-28" : "pb-6"
+          }`}
+        >
 
           {/* Status banners */}
           {bgError && (
@@ -801,14 +1165,39 @@ export default function MockUpGenerator() {
 
           {/* ── 3D Studio ── */}
           {viewMode === "3D" && (
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col gap-4">
+              {/* Horizontal Product Selector */}
+              <div className="bg-[var(--bg-card)] p-2.5 rounded-2xl border border-[var(--border-color)] shadow-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {THREE_D_PRODUCTS.map((p) => {
+                    const isActive = activeTemplate === p.type;
+                    return (
+                      <button
+                        key={p.type}
+                        id={`3d-product-${p.type.toLowerCase().replace(/\s+/g, "-")}`}
+                        onClick={() => setActiveTemplate(p.type)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                          isActive
+                            ? "border-[#7C3AED] bg-[#7C3AED]/15 text-[#7C3AED] shadow-sm ring-1 ring-[#7C3AED]/30"
+                            : "border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[#7C3AED]/40 hover:bg-[var(--bg-card-hover)]"
+                        }`}
+                      >
+                        <span className="text-lg leading-none">{p.emoji}</span>
+                        <span className="truncate">{p.type}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Main 3D Canvas + Controls Row */}
+              <div className="flex flex-col lg:flex-row gap-5 items-start">
                 {/* Viewer */}
-                <div className="flex-1">
+                <div className="flex-1 w-full min-w-0">
                   <Suspense
                     fallback={
-                      <div className="h-[500px] w-full flex items-center justify-center bg-gray-50 rounded-3xl border border-dashed border-gray-300">
-                        <p className="text-gray-400 text-sm font-medium animate-pulse">
+                      <div className="h-[500px] w-full flex items-center justify-center bg-[var(--bg-secondary)] rounded-3xl border border-dashed border-[var(--border-color)]">
+                        <p className="text-[var(--text-muted)] text-sm font-medium animate-pulse">
                           Loading 3D Engine...
                         </p>
                       </div>
@@ -828,41 +1217,23 @@ export default function MockUpGenerator() {
                 </div>
 
                 {/* 3D Controls sidebar */}
-                <div className="w-full md:w-72 flex flex-col gap-4">
-                  <div className="bg-white rounded-3xl p-6 shadow-md border border-gray-100">
-                    <h3 className="font-black text-gray-900 mb-5 flex items-center gap-2 text-sm">
-                      🔧 Studio Controls
-                    </h3>
-
-                    {/* Product Selector */}
-                    <div className="mb-6">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">
-                        Choose Product
-                      </label>
-                      <div className="flex flex-col gap-2">
-                        {THREE_D_PRODUCTS.map((p) => (
-                          <button
-                            key={p.type}
-                            id={`3d-product-${p.type.toLowerCase().replace(/\s+/g, "-")}`}
-                            onClick={() => setActiveTemplate(p.type)}
-                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-sm font-bold ${
-                              activeTemplate === p.type
-                                ? "border-[#7C3AED] bg-purple-50 text-[#7C3AED]"
-                                : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
-                            }`}
-                          >
-                            <span>{p.emoji}</span> {p.type}
-                          </button>
-                        ))}
-                      </div>
+                <div className="w-full lg:w-80 flex flex-col gap-3 shrink-0">
+                  <div className="bg-[var(--bg-card)] rounded-3xl p-5 shadow-lg border border-[var(--border-color)] flex flex-col gap-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
+                      <h3 className="font-extrabold text-[var(--text-primary)] flex items-center gap-2 text-sm tracking-wide">
+                        <span>🔧</span> Studio Controls
+                      </h3>
+                      <span className="text-[10px] font-bold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full border border-[#7C3AED]/20">
+                        Live 3D
+                      </span>
                     </div>
 
                     {/* Color Picker */}
-                    <div className="mb-6">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">
+                    <div>
+                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
                         Product Color
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 items-center">
                         {[
                           "#ffffff",
                           "#1a1a1a",
@@ -876,10 +1247,10 @@ export default function MockUpGenerator() {
                           <button
                             key={c}
                             onClick={() => setProductColor(c)}
-                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                            className={`w-7 h-7 rounded-full border-2 transition-all cursor-pointer ${
                               productColor === c
-                                ? "border-gray-800 scale-110 shadow-md"
-                                : "border-transparent shadow-sm"
+                                ? "border-white scale-110 shadow-md ring-2 ring-[#7C3AED]"
+                                : "border-transparent opacity-80 hover:opacity-100 hover:scale-105"
                             }`}
                             style={{ backgroundColor: c }}
                             title={c}
@@ -889,16 +1260,30 @@ export default function MockUpGenerator() {
                     </div>
 
                     {/* Logo Adjustments */}
-                    <div className="mb-6 border-t border-gray-100 pt-6">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">
-                        📐 Logo Placement
-                      </label>
-                      
+                    <div className="border-t border-[var(--border-color)] pt-3 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                          📐 Logo Placement
+                        </label>
+                        <button
+                          onClick={() => {
+                            setLogoX(0);
+                            setLogoY(0);
+                            setLogoScale(1);
+                          }}
+                          className="text-[10px] font-bold text-[#7C3AED] hover:underline cursor-pointer transition"
+                        >
+                          Reset
+                        </button>
+                      </div>
+
                       {/* Position Y Slider */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-[11px] font-bold text-gray-500 mb-1">
-                          <span>Vertical Position</span>
-                          <span className="text-[#7C3AED]">{logoY > 0 ? `+${logoY.toFixed(2)}` : logoY.toFixed(2)}</span>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
+                          <span>Vertical</span>
+                          <span className="text-[#7C3AED] font-mono">
+                            {logoY > 0 ? `+${logoY.toFixed(2)}` : logoY.toFixed(2)}
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -907,15 +1292,17 @@ export default function MockUpGenerator() {
                           step="0.05"
                           value={logoY}
                           onChange={(e) => setLogoY(parseFloat(e.target.value))}
-                          className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
+                          className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
                         />
                       </div>
 
                       {/* Position X Slider */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-[11px] font-bold text-gray-500 mb-1">
-                          <span>Horizontal Position</span>
-                          <span className="text-[#7C3AED]">{logoX > 0 ? `+${logoX.toFixed(2)}` : logoX.toFixed(2)}</span>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
+                          <span>Horizontal</span>
+                          <span className="text-[#7C3AED] font-mono">
+                            {logoX > 0 ? `+${logoX.toFixed(2)}` : logoX.toFixed(2)}
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -924,15 +1311,17 @@ export default function MockUpGenerator() {
                           step="0.05"
                           value={logoX}
                           onChange={(e) => setLogoX(parseFloat(e.target.value))}
-                          className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
+                          className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
                         />
                       </div>
 
                       {/* Scale Slider */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-[11px] font-bold text-gray-500 mb-1">
+                      <div>
+                        <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
                           <span>Logo Size</span>
-                          <span className="text-[#7C3AED]">{logoScale.toFixed(2)}×</span>
+                          <span className="text-[#7C3AED] font-mono">
+                            {logoScale.toFixed(2)}×
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -941,47 +1330,43 @@ export default function MockUpGenerator() {
                           step="0.05"
                           value={logoScale}
                           onChange={(e) => setLogoScale(parseFloat(e.target.value))}
-                          className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
+                          className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
                         />
                       </div>
-
-                      {/* Reset Button */}
-                      <button
-                        onClick={() => { setLogoX(0); setLogoY(0); setLogoScale(1); }}
-                        className="w-full py-1 text-[10px] font-bold text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-lg transition-colors"
-                      >
-                        Reset Placement
-                      </button>
                     </div>
 
                     {/* Rotation Speed */}
-                    <div>
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex justify-between">
-                        <span>Rotation Speed</span>
-                        <span className="text-[#3B82F6]">{rotationSpeed}×</span>
-                      </label>
+                    <div className="border-t border-[var(--border-color)] pt-3">
+                      <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
+                        <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider">
+                          Rotation Speed
+                        </span>
+                        <span className="text-[#3B82F6] font-mono font-bold">
+                          {rotationSpeed}×
+                        </span>
+                      </div>
                       <input
                         type="range"
                         min="0"
                         max="5"
                         step="0.5"
                         value={rotationSpeed}
-                        onChange={(e) =>
-                          setRotationSpeed(parseFloat(e.target.value))
-                        }
-                        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
+                        onChange={(e) => setRotationSpeed(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
                       />
-                      <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-bold">
+                      <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1 font-medium">
                         <span>Pause</span>
                         <span>Fast</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-5 text-white shadow-xl">
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      🎮 Drag to rotate · Scroll to zoom · Use controls above to pause, switch lighting &amp; download screenshot.
-                    </p>
+                    {/* Interactive Hint */}
+                    <div className="pt-2 border-t border-[var(--border-color)] flex items-start gap-2 text-[10px] text-[var(--text-muted)] leading-relaxed">
+                      <span className="text-xs">🎮</span>
+                      <span>
+                        Drag to rotate · Scroll to zoom · Canvas controls to pause &amp; save.
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1003,8 +1388,8 @@ export default function MockUpGenerator() {
         </div>
       )}
 
-      {/* Sticky Footer */}
-      {mockups.length > 0 && (
+      {/* Sticky Footer (2D Mockups only) */}
+      {viewMode === "2D" && mockups.length > 0 && (
         <footer className="sticky bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] mt-auto z-10 w-full">
           <div className="max-w-6xl mx-auto px-6 py-4 flex gap-3 justify-end">
             <button

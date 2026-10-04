@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getLogoHistory } from "../services/logoService";
+import { getUserBrands } from "../services/guidelineService";
 import { logoutUser } from "../services/authService";
 import BrandGuidelinesModal from "../components/BrandGuidelinesModal";
 import MockupModal from "../components/MockupModal";
@@ -113,20 +114,28 @@ const Dashboard = () => {
       setLoading(true);
       try {
         const [logosRes, creditsRes] = await Promise.allSettled([
-          getLogoHistory(1, 6),
+          getLogoHistory(1, 100),
           user.getIdToken().then(token =>
             axios.get(`${API}/credits`, { headers: { Authorization: `Bearer ${token}` } })
           )
         ]);
 
-        const logos = logosRes.status === "fulfilled" ? logosRes.value.data || [] : [];
+        const allLogos = logosRes.status === "fulfilled" ? logosRes.value.data || [] : [];
         const logoCount = logosRes.status === "fulfilled"
-          ? logosRes.value.pagination?.total ?? logos.length : 0;
+          ? logosRes.value.pagination?.total ?? allLogos.length : 0;
         const creditBalance = creditsRes.status === "fulfilled"
           ? creditsRes.value?.data?.data?.balance ?? 50 : 50;
 
-        setRecentLogos(logos);
-        setStats({ logos: logoCount, brands: logos.length, credits: creditBalance });
+        const uniqueBrands = new Set(
+          allLogos
+            .map(l => (l.brand_name || "").trim())
+            .filter(name => name.length > 0)
+            .map(name => name.toLowerCase())
+        );
+        const brandCount = uniqueBrands.size;
+
+        setRecentLogos(allLogos.slice(0, 6));
+        setStats({ logos: logoCount, brands: brandCount, credits: creditBalance });
       } catch (e) {
         console.error("Dashboard load error:", e);
       } finally {

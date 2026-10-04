@@ -64,9 +64,12 @@ export default function DashboardLayout() {
           {/* Logo + collapse button */}
           <div className="flex items-center justify-between mb-8">
             <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-              <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center shadow-lg flex-shrink-0">
-                <span className="text-white font-black text-xl">B</span>
-              </div>
+              <img
+                src="/brandybot_icon.png"
+                alt="BrandyBot Logo"
+                className="w-9 h-9 object-contain flex-shrink-0"
+                onError={e => e.target.style.display = "none"}
+              />
               <span className="font-black text-xl brand-gradient-text tracking-tight">Brandy<span className="text-purple-500">Bot</span></span>
             </Link>
             <button

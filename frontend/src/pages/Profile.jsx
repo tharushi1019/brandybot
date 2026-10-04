@@ -26,6 +26,8 @@ export default function Profile() {
 
   const [brands, setBrands] = useState([]);
   const [logos, setLogos] = useState([]);
+  const [logoTotal, setLogoTotal] = useState(0);
+  const [brandTotal, setBrandTotal] = useState(0);
   const [credits, setCredits] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,11 +48,21 @@ export default function Profile() {
         const token = await user.getIdToken();
         const [brandsRes, logosRes, creditsRes] = await Promise.allSettled([
           getUserBrands(),
-          getLogoHistory(1, 6),
+          getLogoHistory(1, 100),
           axios.get(`${API}/credits`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
-        setBrands(brandsRes.status === "fulfilled" ? brandsRes.value.data || [] : []);
-        setLogos(logosRes.status === "fulfilled" ? logosRes.value.data || [] : []);
+        const allLogos = logosRes.status === "fulfilled" ? (logosRes.value.data || []) : [];
+        const uniqueBrands = new Set(
+          allLogos
+            .map(l => (l.brand_name || "").trim())
+            .filter(name => name.length > 0)
+            .map(name => name.toLowerCase())
+        );
+
+        setBrands(brandsRes.status === "fulfilled" ? (Array.isArray(brandsRes.value?.data) ? brandsRes.value.data : []) : []);
+        setLogos(allLogos.slice(0, 6));
+        setLogoTotal(logosRes.status === "fulfilled" ? (logosRes.value.pagination?.total ?? allLogos.length) : 0);
+        setBrandTotal(uniqueBrands.size);
         setCredits(creditsRes.status === "fulfilled" ? creditsRes.value?.data?.data?.balance ?? 50 : null);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
@@ -159,8 +171,8 @@ export default function Profile() {
 
         {/* Stats Row */}
         <div className="flex gap-3 mb-6">
-          <StatBadge icon="🎨" label="Logos Made" value={logos.length} />
-          <StatBadge icon="🏷"  label="Brands"    value={brands.length} />
+          <StatBadge icon="🎨" label="Logos Made" value={logoTotal} />
+          <StatBadge icon="🏷"  label="Brands"    value={brandTotal} />
           <StatBadge icon="💎" label="Credits"    value={credits !== null ? credits : "—"} />
         </div>
 

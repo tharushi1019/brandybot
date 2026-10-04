@@ -63,7 +63,8 @@ const TwoBoxLoader = () => (
 );
 
 // ─── Logo Lightbox ─────────────────────────────────────────────
-const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) => {
+// ─── Logo Lightbox ─────────────────────────────────────────────
+const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup, onCustomizer }) => {
   const [idx, setIdx] = React.useState(startIndex ?? 0);
   const logo = logos[idx];
   React.useEffect(() => {
@@ -88,54 +89,84 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{
       position:'fixed', inset:0, zIndex:9999,
-      background:'rgba(0,0,0,0.90)', backdropFilter:'blur(10px)',
+      background:'rgba(0,0,0,0.92)', backdropFilter:'blur(12px)',
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
     }}>
-      <button onClick={onClose} style={{ position:'absolute', top:18, right:22, color:'white', fontSize:26, background:'rgba(255,255,255,0.12)', border:'none', borderRadius:10, width:42, height:42, cursor:'pointer' }}>×</button>
-      {/* Action bar - Top Center Hub */}
+      <button onClick={onClose} style={{ position:'absolute', top:18, right:22, color:'white', fontSize:26, background:'rgba(255,255,255,0.12)', border:'none', borderRadius:12, width:42, height:42, cursor:'pointer' }} className="hover:bg-white/20 transition-colors">×</button>
+      
+      {/* Action bar - Top Center Hub with all options for current active logo */}
       <div style={{
-        position:'absolute', top:30, left:'50%', transform:'translateX(-50%)',
-        display:'flex', gap:12, padding:'12px 24px', borderRadius:20,
-        background:'rgba(255,255,255,0.05)', backdropFilter:'blur(20px)',
-        border:'1px solid rgba(255,255,255,0.1)', boxShadow:'0 10px 40px rgba(0,0,0,0.5)',
-        zIndex:10000, flexWrap:'nowrap'
+        position:'absolute', top:24, left:'50%', transform:'translateX(-50%)',
+        display:'flex', gap:8, padding:'8px 16px', borderRadius:20,
+        background:'rgba(20,20,30,0.85)', backdropFilter:'blur(20px)',
+        border:'1px solid rgba(255,255,255,0.15)', boxShadow:'0 10px 40px rgba(0,0,0,0.6)',
+        zIndex:10000, flexWrap:'wrap', justifyContent:'center'
       }}>
-        <button onClick={() => { onGuidelines(logo); onClose(); }} className="flex items-center gap-2" style={{ padding:'10px 20px', borderRadius:12, fontSize:13, fontWeight:600, background:'rgba(255,255,255,0.1)', color:'white', border:'none', cursor:'pointer', transition:'all 0.2s' }}>
-          <span>📋</span> Guidelines
+        <button
+          onClick={() => { onGuidelines(logo); onClose(); }}
+          className="flex items-center gap-2 hover:bg-purple-500/20 hover:scale-105 transition-all text-xs font-semibold px-4 py-2.5 rounded-xl border border-purple-500/30 text-purple-200 bg-purple-500/10 cursor-pointer"
+        >
+          <span>📄</span> Guidelines
         </button>
-        <button onClick={() => { onMockup(logo); onClose(); }} className="flex items-center gap-2" style={{ padding:'10px 20px', borderRadius:12, fontSize:13, fontWeight:600, background:'rgba(255,255,255,0.1)', color:'white', border:'none', cursor:'pointer', transition:'all 0.2s' }}>
-          <span>👕</span> Mockup
+        <button
+          onClick={() => { onMockup(logo); onClose(); }}
+          className="flex items-center gap-2 hover:bg-blue-500/20 hover:scale-105 transition-all text-xs font-semibold px-4 py-2.5 rounded-xl border border-blue-500/30 text-blue-200 bg-blue-500/10 cursor-pointer"
+        >
+          <span>✨</span> Mockups
         </button>
-        <button onClick={handleDl} className="flex items-center gap-2" style={{ padding:'10px 20px', borderRadius:12, fontSize:13, fontWeight:600, background:'var(--brand-gradient, linear-gradient(90deg,#7c3aed,#3b82f6))', color:'white', border:'none', cursor:'pointer', transition:'all 0.2s' }}>
+        <button
+          onClick={() => { onCustomizer(logo); onClose(); }}
+          className="flex items-center gap-2 hover:bg-indigo-500/20 hover:scale-105 transition-all text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-500/30 text-indigo-200 bg-indigo-500/10 cursor-pointer"
+        >
+          <span>✏️</span> Typography Lockup
+        </button>
+        <button
+          onClick={handleDl}
+          className="flex items-center gap-2 hover:opacity-95 hover:scale-105 transition-all text-xs font-semibold px-4 py-2.5 rounded-xl brand-gradient text-white shadow-md cursor-pointer"
+        >
           <span>⬇</span> Download
+        </button>
+        <button
+          onClick={() => window.open(logo.logo_url, '_blank')}
+          className="flex items-center gap-2 hover:bg-white/20 hover:scale-105 transition-all text-xs font-semibold px-4 py-2.5 rounded-xl border border-white/15 bg-white/10 text-white/90 cursor-pointer"
+        >
+          <span>🔗</span> New Tab
         </button>
       </div>
 
       {/* Image + arrows */}
-      <div style={{ display:'flex', alignItems:'center', gap:40, width:'100%', justifyContent:'center', padding:'0 40px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:30, width:'100%', justifyContent:'center', padding:'0 30px', marginTop:40 }}>
         <button onClick={() => setIdx(i => Math.max(0,i-1))} disabled={idx===0}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', opacity:idx===0?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.08)', color:'white', borderRadius:16, width:54, height:54, display:'flex', alignItems:'center', justifyContent:'center', cursor:idx===0?'default':'pointer', opacity:idx===0?0.15:1, border:'1px solid rgba(255,255,255,0.15)' }}>
           ‹
         </button>
         
         <div style={{ maxWidth:'min(800px, 85vw)', display:'flex', flexDirection:'column', alignItems:'center' }}>
           <div className="relative group">
             <img src={logo.logo_url} alt={`Variant ${idx+1}`}
-              style={{ maxHeight:'75vh', width:'auto', maxWidth:'100%', borderRadius:24, boxShadow:'0 30px 100px rgba(0,0,0,0.8)', objectFit:'contain', background:'white' }}
+              style={{ maxHeight:'70vh', width:'auto', maxWidth:'100%', borderRadius:24, boxShadow:'0 30px 100px rgba(0,0,0,0.85)', objectFit:'contain', background:'white' }}
               onError={e => { e.target.style.display='none'; }} />
-            <div className="absolute inset-0 rounded-24 ring-1 ring-inset ring-white/10 pointer-events-none" />
+            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/10 pointer-events-none" />
           </div>
-          <div style={{ marginTop:24, padding:'8px 20px', borderRadius:30, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color:'white', fontSize:13, fontWeight:500 }}>
-              Variant {idx+1} of {logos.length} {logo.style && <span style={{ opacity:0.6, marginLeft:12, fontWeight:400, borderLeft:'1px solid rgba(255,255,255,0.2)', paddingLeft:12 }}>{logo.style}</span>}
+          <div style={{ marginTop:20, padding:'8px 24px', borderRadius:30, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', display:'flex', alignItems:'center', gap:12 }}>
+            <p style={{ color:'white', fontSize:13, fontWeight:600 }}>
+              Variant {idx+1} of {logos.length}
             </p>
+            {logo.style && (
+              <span style={{ opacity:0.7, fontSize:12, fontWeight:400, borderLeft:'1px solid rgba(255,255,255,0.2)', paddingLeft:12, color:'#c4b5fd' }}>
+                {logo.style}
+              </span>
+            )}
+            <span style={{ fontSize:11, opacity:0.5, color:'white' }}>
+              (Actions at top apply to this variant)
+            </span>
           </div>
         </div>
 
         <button onClick={() => setIdx(i => Math.min(logos.length-1,i+1))} disabled={idx===logos.length-1}
           className="hover:scale-110 transition-transform"
-          style={{ fontSize:32, background:'rgba(255,255,255,0.05)', color:'white', borderRadius:15, width:60, height:60, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', opacity:idx===logos.length-1?0.1:1, border:'1px solid rgba(255,255,255,0.1)' }}>
+          style={{ fontSize:32, background:'rgba(255,255,255,0.08)', color:'white', borderRadius:16, width:54, height:54, display:'flex', alignItems:'center', justifyContent:'center', cursor:idx===logos.length-1?'default':'pointer', opacity:idx===logos.length-1?0.15:1, border:'1px solid rgba(255,255,255,0.15)' }}>
           ›
         </button>
       </div>
@@ -146,9 +177,10 @@ const LogoLightbox = ({ logos, startIndex, onClose, onGuidelines, onMockup }) =>
 const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onCustomizerClick, onImageClick }) => {
   const isUser = msg.role === 'user';
   const logoCount = msg.logos?.length ?? 0;
+  const [selectedIdx, setSelectedIdx] = React.useState(0);
   
-  // Use first logo for quick actions if multiple exist
-  const primaryLogo = msg.logos?.[0] || msg.logo;
+  // Use currently selected logo, fallback to first
+  const currentLogo = (msg.logos && msg.logos[selectedIdx]) || msg.logos?.[0] || msg.logo;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 animate-fade-in-up`}>
@@ -175,41 +207,76 @@ const MessageBubble = ({ msg, onGuidelinesClick, onMockupClick, onCustomizerClic
             <div className="flex flex-wrap gap-4">
               {msg.logos.map((logo, i) => (
                 <div key={logo.id || i}
-                  className="glass-card rounded-2xl overflow-hidden hover:-translate-y-1 transition-all hover:shadow-xl cursor-pointer group/card border border-white/10 bg-white"
+                  className={`glass-card rounded-2xl overflow-hidden hover:-translate-y-1 transition-all hover:shadow-xl cursor-pointer group/card border bg-white relative ${
+                    selectedIdx === i ? 'ring-2 ring-purple-500 border-purple-500 shadow-lg shadow-purple-500/25' : 'border-white/10'
+                  }`}
                   style={{ width:'min(200px, 45%)' }}
-                  onClick={() => onImageClick(msg.logos, i)}
+                  onClick={() => {
+                    setSelectedIdx(i);
+                    onImageClick(msg.logos, i);
+                  }}
                 >
                   <div className="relative p-4 flex items-center justify-center aspect-square">
                     <img src={logo.logo_url} alt={`Variant ${i+1}`}
                       className="max-h-full max-w-full object-contain pointer-events-none"
                       crossOrigin="anonymous"
                       onError={e => { e.target.style.display='none'; }} />
-                    <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/5 transition-colors flex items-center justify-center">
-                       <span className="opacity-0 group-hover/card:opacity-100 bg-white/90 text-black text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg transition-opacity uppercase tracking-wider">Expand</span>
+                    <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/15 transition-colors flex items-center justify-center">
+                       <span className="opacity-0 group-hover/card:opacity-100 bg-white/95 text-black text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg transition-opacity uppercase tracking-wider">
+                         Expand & Actions
+                       </span>
                     </div>
+                  </div>
+                  {/* Variant Footer Indicator */}
+                  <div className="px-3 py-1.5 bg-slate-50 dark:bg-black/40 border-t border-[var(--border-color)] flex items-center justify-between text-[11px] font-bold">
+                    <span className={selectedIdx === i ? 'text-purple-600 dark:text-purple-400' : 'text-[var(--text-muted)]'}>
+                      Variant {i + 1}
+                    </span>
+                    {selectedIdx === i ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full brand-gradient text-white font-bold">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-[var(--text-muted)] group-hover/card:text-purple-400">
+                        Click to select
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
             
-            {/* Quick Actions for the chosen direction */}
-            <div className="flex gap-2 mt-4 flex-wrap">
-               <button onClick={() => onGuidelinesClick(primaryLogo)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition flex items-center gap-2">
-                📄 Guidelines
-              </button>
-              <button onClick={() => onMockupClick(primaryLogo)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-2">
-                ✨ Mockups
-              </button>
-              <button onClick={() => onCustomizerClick(primaryLogo)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition flex items-center gap-2">
-                ✏️ Typography Lockup
-              </button>
-              <button onClick={() => window.open(primaryLogo.logo_url, '_blank')}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition flex items-center gap-2">
-                🔗 New Tab
-              </button>
+            {/* Quick Actions for the chosen variant */}
+            <div className="mt-4">
+              {logoCount > 1 && (
+                <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-[var(--text-secondary)]">
+                  <span>Selected:</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-bold px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    Variant {selectedIdx + 1}
+                  </span>
+                  <span className="text-[11px] text-[var(--text-muted)]">
+                    (Click any logo above to expand with full options)
+                  </span>
+                </div>
+              )}
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => onGuidelinesClick(currentLogo)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition flex items-center gap-2">
+                  <span>📄</span> Guidelines
+                </button>
+                <button onClick={() => onMockupClick(currentLogo)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-2">
+                  <span>✨</span> Mockups
+                </button>
+                <button onClick={() => onCustomizerClick(currentLogo)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition flex items-center gap-2">
+                  <span>✏️</span> Typography Lockup
+                </button>
+                <button onClick={() => window.open(currentLogo.logo_url, '_blank')}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/10 transition flex items-center gap-2">
+                  <span>🔗</span> New Tab
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -694,6 +761,7 @@ const LogoAgent = () => {
             });
             setMockupModal({ open: true, logo });
           }}
+          onCustomizer={(logo) => setCustomizerModal({ open: true, logo })}
         />
       )}
     </div>
