@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 
-export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
+export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess, sessionId }) {
   const [brandName, setBrandName] = useState(logo?.brand_name || 'Brand');
   const [tagline, setTagline] = useState('');
   const [layout, setLayout] = useState('vertical'); // vertical, horizontal
@@ -129,6 +129,11 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
     // Clear canvas (transparent)
     ctx.clearRect(0, 0, W, H);
 
+    // Strictly parse numeric values to prevent JavaScript string concatenation bugs
+    const g = Number(gap) || 0;
+    const fnSize = Number(fontSizeName) || 48;
+    const ftSize = Number(fontSizeTagline) || 24;
+
     // Dynamic Fonts mapping
     const fontMapping = {
       'Inter': 'Inter, sans-serif',
@@ -152,18 +157,18 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
       lh = lh * ratio;
 
       // 2. Set fonts to calculate text dimensions
-      ctx.font = `bold ${fontSizeName}px ${chosenFont}`;
-      const nameHeight = parseInt(fontSizeName);
+      ctx.font = `bold ${fnSize}px ${chosenFont}`;
+      const nameHeight = fnSize;
 
       let tagHeight = 0;
-      if (tagline.trim() !== '') {
-        tagHeight = parseInt(fontSizeTagline);
+      if (tagline && tagline.trim() !== '') {
+        tagHeight = ftSize;
       }
 
       // 3. Compute total content height
-      let totalH = lh + gap + nameHeight;
-      if (tagline.trim() !== '') {
-        totalH += (gap / 2) + tagHeight;
+      let totalH = lh + g + nameHeight;
+      if (tagline && tagline.trim() !== '') {
+        totalH += (g / 2) + tagHeight;
       }
 
       // Vertical starting position (centered vertically)
@@ -174,20 +179,20 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
       ctx.drawImage(logoImg, lx, startY, lw, lh);
 
       // Draw brand name
-      ctx.font = `bold ${fontSizeName}px ${chosenFont}`;
+      ctx.font = `bold ${fnSize}px ${chosenFont}`;
       ctx.fillStyle = primaryColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const ny = startY + lh + gap;
+      const ny = startY + lh + g;
       ctx.fillText(brandName, W / 2, ny);
 
       // Draw tagline
-      if (tagline.trim() !== '') {
-        ctx.font = `${fontSizeTagline}px ${chosenFont}`;
+      if (tagline && tagline.trim() !== '') {
+        ctx.font = `${ftSize}px ${chosenFont}`;
         ctx.fillStyle = secondaryColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        const ty = ny + nameHeight + (gap / 2);
+        const ty = ny + nameHeight + (g / 2);
         ctx.fillText(tagline, W / 2, ty);
       }
     }
@@ -202,22 +207,22 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
       lh = lh * ratio;
 
       // 2. Set fonts to calculate text widths
-      ctx.font = `bold ${fontSizeName}px ${chosenFont}`;
+      ctx.font = `bold ${fnSize}px ${chosenFont}`;
       const nameWidth = ctx.measureText(brandName).width;
-      const nameHeight = parseInt(fontSizeName);
+      const nameHeight = fnSize;
 
       let tagWidth = 0;
       let tagHeight = 0;
-      if (tagline.trim() !== '') {
-        ctx.font = `${fontSizeTagline}px ${chosenFont}`;
+      if (tagline && tagline.trim() !== '') {
+        ctx.font = `${ftSize}px ${chosenFont}`;
         tagWidth = ctx.measureText(tagline).width;
-        tagHeight = parseInt(fontSizeTagline);
+        tagHeight = ftSize;
       }
 
       const textWidth = Math.max(nameWidth, tagWidth);
 
       // 3. Compute total content width
-      const totalW = lw + gap + textWidth;
+      const totalW = lw + g + textWidth;
       const startX = (W - totalW) / 2;
 
       // Draw logo icon centered vertically
@@ -226,26 +231,26 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
 
       // Text block height
       let textBlockH = nameHeight;
-      if (tagline.trim() !== '') {
-        textBlockH += (gap / 2) + tagHeight;
+      if (tagline && tagline.trim() !== '') {
+        textBlockH += (g / 2) + tagHeight;
       }
       const textStartY = (H - textBlockH) / 2;
 
       // Draw brand name
-      ctx.font = `bold ${fontSizeName}px ${chosenFont}`;
+      ctx.font = `bold ${fnSize}px ${chosenFont}`;
       ctx.fillStyle = primaryColor;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      const tx = startX + lw + gap;
+      const tx = startX + lw + g;
       ctx.fillText(brandName, tx, textStartY);
 
       // Draw tagline
-      if (tagline.trim() !== '') {
-        ctx.font = `${fontSizeTagline}px ${chosenFont}`;
+      if (tagline && tagline.trim() !== '') {
+        ctx.font = `${ftSize}px ${chosenFont}`;
         ctx.fillStyle = secondaryColor;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        const ty = textStartY + nameHeight + (gap / 2);
+        const ty = textStartY + nameHeight + (g / 2);
         ctx.fillText(tagline, tx, ty);
       }
     }
@@ -263,6 +268,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
     try {
       const base64Png = canvas.toDataURL('image/png');
       const response = await api.post('/logos/lockup', {
+        sessionId: sessionId || null,
         logoId: logo?.id || null,
         logoUrl: logo?.logo_url,
         brandName,
@@ -271,17 +277,17 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
         fontFamily,
         primaryColor,
         secondaryColor,
-        fontSizeName: parseInt(fontSizeName),
-        fontSizeTagline: parseInt(fontSizeTagline),
-        gap: parseInt(gap),
+        fontSizeName: parseInt(fontSizeName, 10) || 48,
+        fontSizeTagline: parseInt(fontSizeTagline, 10) || 24,
+        gap: parseInt(gap, 10) || 20,
         compiledBase64: base64Png, // Bypass Python completely by passing pre-rendered transparent image
       });
 
       if (response.data?.success) {
         if (onSaveSuccess) {
-          onSaveSuccess(response.data.data.lockupUrl);
+          onSaveSuccess(response.data.data);
         }
-        alert('🎉 Custom Typography Lockup saved successfully!');
+        alert('🎉 Custom Typography Lockup saved to "My Logos" successfully!');
         onClose();
       }
     } catch (err) {
@@ -306,7 +312,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div style={modalPanelStyle}>
-        
+
         {/* Header */}
         <div style={headerStyle}>
           <div>
@@ -318,10 +324,10 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
 
         {/* Studio Content */}
         <div style={bodyStyle}>
-          
+
           {/* Controls Panel (Left) */}
           <div style={controlsPanelStyle}>
-            
+
             {/* Input fields */}
             <div style={sectionStyle}>
               <label style={labelStyle}>Brand Name</label>
@@ -431,7 +437,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
                 min="24"
                 max="80"
                 value={fontSizeName}
-                onChange={(e) => setFontSizeName(e.target.value)}
+                onChange={(e) => setFontSizeName(Number(e.target.value))}
                 style={sliderStyle}
               />
             </div>
@@ -446,7 +452,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
                 min="12"
                 max="40"
                 value={fontSizeTagline}
-                onChange={(e) => setFontSizeTagline(e.target.value)}
+                onChange={(e) => setFontSizeTagline(Number(e.target.value))}
                 style={sliderStyle}
               />
             </div>
@@ -461,7 +467,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
                 min="10"
                 max="60"
                 value={gap}
-                onChange={(e) => setGap(e.target.value)}
+                onChange={(e) => setGap(Number(e.target.value))}
                 style={sliderStyle}
               />
             </div>
@@ -482,7 +488,7 @@ export default function LogoCustomizerModal({ logo, onClose, onSaveSuccess }) {
             <p style={{ margin: '0 0 10px 0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.6, fontWeight: 'bold' }}>
               Real-Time Transparent Preview
             </p>
-            
+
             <div style={canvasContainerStyle}>
               {loading && (
                 <div style={canvasOverlayStyle}>

@@ -241,6 +241,7 @@ exports.rateLogo = catchAsync(async (req, res, next) => {
  */
 exports.generateLogoLockup = catchAsync(async (req, res, next) => {
     const {
+        sessionId,
         logoId,
         logoUrl,
         brandName,
@@ -260,15 +261,92 @@ exports.generateLogoLockup = catchAsync(async (req, res, next) => {
     }
 
     let finalLogoUrl = logoUrl;
+    let sourceLogo = null;
 
     if (logoId) {
         const [logo] = await sql`
-            SELECT logo_url FROM logo_history WHERE id = ${logoId} AND user_id = ${req.user.id}
+            SELECT * FROM logo_history WHERE id = ${logoId} AND user_id = ${req.user.id}
         `;
         if (logo) {
+            sourceLogo = logo;
             finalLogoUrl = logo.logo_url;
         }
     }
+
+    // Helper to persist lockup in logo_history
+    const persistLockupInHistory = async (lockupUrl) => {
+        const colorsJson = {
+            primary: primaryColor || '#7C3AED',
+            secondary: secondaryColor || '#3B82F6',
+            accent: '#F59E0B',
+            additional: []
+        };
+        const fontsJson = { primary: fontFamily || 'Inter', secondary: 'Helvetica' };
+        const metadataJson = {
+            type: 'typography_lockup',
+            parentLogoId: logoId || null,
+            layout: layout || 'horizontal',
+            tagline: tagline || '',
+            fontSizeName: parseInt(fontSizeName, 10) || 48,
+            fontSizeTagline: parseInt(fontSizeTagline, 10) || 24,
+            gap: parseInt(gap, 10) || 20,
+            sourceLogoUrl: finalLogoUrl || null
+        };
+
+        const [savedLogo] = await sql`
+            INSERT INTO logo_history (
+                user_id, brand_name, prompt, industry, style, status, logo_url, colors, fonts, metadata
+            ) VALUES (
+                ${req.user.id},
+                ${brandName},
+                ${sourceLogo?.prompt || `Typography Lockup for ${brandName}`},
+                ${sourceLogo?.industry || ''},
+                ${'Typography Lockup'},
+                'completed',
+                ${lockupUrl},
+                ${sql.json(colorsJson)},
+                ${sql.json(fontsJson)},
+                ${sql.json(metadataJson)}
+            )
+            RETURNING *
+        `;
+
+        // Update user stats
+        const userStats = req.user.stats || { logosGenerated: 0, brandsCreated: 0 };
+        userStats.logosGenerated = (userStats.logosGenerated || 0) + 1;
+        await sql`UPDATE users SET stats = ${sql.json(userStats)} WHERE id = ${req.user.id}`;
+        req.user.stats = userStats;
+
+        // If part of an active chat session, persist the lockup message to chat_messages in DB
+        if (sessionId) {
+            try {
+                const [session] = await sql`
+                    SELECT id FROM chat_sessions WHERE id = ${sessionId} AND user_id = ${req.user.id}
+                `;
+                if (session) {
+                    await sql`
+                        INSERT INTO chat_messages (session_id, user_id, role, content, action, metadata)
+                        VALUES (
+                            ${sessionId},
+                            ${req.user.id},
+                            'ai',
+                            ${`✨ **Typography Lockup Saved!**\nYour customized lockup for **${brandName}** has been saved to your [**My Logos**](/logo_history) gallery.`},
+                            'lockup_saved',
+                            ${sql.json({
+                                logoResult: savedLogo,
+                                logoResults: [savedLogo]
+                            })}
+                        )
+                    `;
+                    console.log(`💬 Attached lockup message to session ${sessionId}`);
+                }
+            } catch (chatErr) {
+                console.warn('⚠️ Could not attach message to session:', chatErr.message);
+            }
+        }
+
+        return savedLogo;
+    };
 
     // Bypass Python service completely if compiledBase64 is provided directly by client
     if (compiledBase64) {
@@ -277,18 +355,21 @@ exports.generateLogoLockup = catchAsync(async (req, res, next) => {
             const lockupUrl = await uploadToImgBB(compiledBase64);
             console.log(`💾 Transparent Lockup uploaded to ImgBB: ${lockupUrl}`);
 
+            const savedLogo = await persistLockupInHistory(lockupUrl);
+
             return res.status(200).json({
                 success: true,
                 data: {
+                    ...savedLogo,
                     lockupUrl,
                     settings: {
                         layout,
                         fontFamily,
                         primaryColor,
                         secondaryColor,
-                        fontSizeName,
-                        fontSizeTagline,
-                        gap
+                        fontSizeName: parseInt(fontSizeName, 10),
+                        fontSizeTagline: parseInt(fontSizeTagline, 10),
+                        gap: parseInt(gap, 10)
                     }
                 }
             });
@@ -326,18 +407,21 @@ exports.generateLogoLockup = catchAsync(async (req, res, next) => {
             console.warn('⚠️ Failed to upload lockup to ImgBB, using base/local URL:', uploadError.message);
         }
 
+        const savedLogo = await persistLockupInHistory(lockupUrl);
+
         res.status(200).json({
             success: true,
             data: {
+                ...savedLogo,
                 lockupUrl,
                 settings: {
                     layout,
                     fontFamily,
                     primaryColor,
                     secondaryColor,
-                    fontSizeName,
-                    fontSizeTagline,
-                    gap
+                    fontSizeName: parseInt(fontSizeName, 10),
+                    fontSizeTagline: parseInt(fontSizeTagline, 10),
+                    gap: parseInt(gap, 10)
                 }
             }
         });
