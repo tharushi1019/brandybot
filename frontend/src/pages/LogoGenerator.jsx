@@ -353,6 +353,11 @@ Perfect! I have everything I need. Let me design your logo now — this may take
         <LogoCustomizerModal
           logo={{ id: logoData?.id || null, logo_url: generatedLogo, brand_name: brandProfile.brandName }}
           onClose={() => setCustomizerOpen(false)}
+          onSaveSuccess={(savedLogo) => {
+            if (savedLogo?.lockupUrl || savedLogo?.logo_url) {
+              setGeneratedLogo(savedLogo.lockupUrl || savedLogo.logo_url);
+            }
+          }}
         />
       )}
     </div>

@@ -743,7 +743,30 @@ const LogoAgent = () => {
       {customizerModal.open && (
         <LogoCustomizerModal
           logo={customizerModal.logo}
+          sessionId={activeSessionId}
           onClose={() => setCustomizerModal({ open: false, logo: null })}
+          onSaveSuccess={(savedLogo) => {
+            const logoEntry = {
+              id: savedLogo.id,
+              logo_url: savedLogo.lockupUrl || savedLogo.logo_url,
+              brand_name: savedLogo.brand_name || brandContext.name || 'Brand',
+              style: savedLogo.style || 'Typography Lockup',
+              status: 'completed',
+              colors: savedLogo.colors,
+              fonts: savedLogo.fonts,
+              metadata: savedLogo.metadata
+            };
+            setMessages(prev => [
+              ...prev,
+              {
+                id: `lockup-msg-${savedLogo.id || Date.now()}`,
+                role: 'ai',
+                content: `✨ **Typography Lockup Saved!**\nYour customized lockup for **${logoEntry.brand_name}** has been saved to your [**My Logos**](/logo_history) gallery.`,
+                logos: [logoEntry],
+                logo: logoEntry
+              }
+            ]);
+          }}
         />
       )}
       {lightbox.open && lightbox.logos.length > 0 && (
